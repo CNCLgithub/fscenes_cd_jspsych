@@ -46,14 +46,13 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   const sx = flipx ? -1 : 1;
   const sy = STIM_IMAGE_FLIPY ? -1 : 1;
   const path_a = `assets/images/${img_a}`;
-  console.log(img_a);
-  console.log(path_a);
   const path_b = `assets/images/${img_b}`;
   const sd = {
       type: SameDifferentHtmlPlugin,
       stimuli: [
-        `<image src=${path_a} style="scaleX(${sx});scaleY(${sy})"\>`,
-        `<image src=${path_b} style="scaleX(${sx});scaleY(${sy})"\>`
+        // from https://stackoverflow.com/a/17698171
+        `<div class="centered"><image src=${path_a} style="scaleX(${sx});scaleY(${sy})"\></div>`,
+        `<div class="centered"><image src=${path_b} style="scaleX(${sx});scaleY(${sy})"\></div>`
       ],
       prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
       same_key: 'f',
