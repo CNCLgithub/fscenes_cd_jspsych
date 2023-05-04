@@ -31,15 +31,15 @@ console.log(trial_list);
 var N_TRIALS = 128;
 var EXP_DURATION = 20;
 const IMAGE_PATH = 'data/images';
-const STIM_IMAGE_W = 720; // in pixels
-const STIM_IMAGE_H = 480;
+const STIM_IMAGE_W = '11.25cm';
+const STIM_IMAGE_H = '7.5cm';
 const STIM_IMAGE_DUR = 500; // ms
 const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_FLIPY = false; // ms
+const STIM_IMAGE_FLIPY = false;
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = true;
-const SKIP_INSTRUCTIONS = true;
+const SKIP_INSTRUCTIONS = false;
 
 /*  helper to generate timeline parts for a trial */
 var genTrial = function (jsPsych, img_a, img_b, flipx) {
@@ -51,8 +51,9 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
       type: SameDifferentHtmlPlugin,
       stimuli: [
         // from https://stackoverflow.com/a/17698171
-        `<div class="centered"><image src=${path_a} style="scaleX(${sx});scaleY(${sy})"\></div>`,
-        `<div class="centered"><image src=${path_b} style="scaleX(${sx});scaleY(${sy})"\></div>`
+        // TODO: set image scale
+        `<div class="centered"><image src=${path_a} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`,
+        `<div class="centered"><image src=${path_b} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`
       ],
       prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
       same_key: 'f',
@@ -81,7 +82,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   const timeline = [];
 
-  console.log(assetPaths.images)
   // Preload assets
   timeline.push({
     type: PreloadPlugin,
@@ -137,7 +137,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
           `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw. Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` + `Click <b>Next</b> to continue.`,
           `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
           `In this study, two images will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
-          `After the second image dissapears, press <b>"f"</b> if the images are <b>DIFFERENT</b> or <b>"j"</b> if the images are the <b>SAME</b> <br> <br>` +
+          `After the second image dissapears, press <b>"f"</b> if the images are the <b>SAME</b> or <b>"j"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
           `Click <b>Next</b> to continue.`,
           `<strong>The next screen will be a demonstration trial.</strong> <br>` +
           `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
@@ -151,9 +151,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
 
   //        example
-  const exampleTrial = genTrial("example_a.png",
-                                "example_b.png",
-                                false);
+  const exampleTrial = genTrial(jsPsych, "example_a.png", "example_b.png", false);
 
   // comprehension check
   const comp_check = {
@@ -162,9 +160,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       questions: [{
               prompt: "Which key should you respond with if the two images are the same?",
               name: 'check1',
-              options: ['j',
-                        'f',
-                        's'],
+              options: ['j','f','s'],
               required: true
           },
           {
@@ -180,7 +176,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
           var q1 = data.response.check1;
           var q2 = data.response.check2;
           // set to true if both comp checks are passed
-          data.correct = (q1 == 'f' && q2 == 'true');
+          data.correct = (q1 == 'f' && q2 == 'false');
       },
       data: {
           // add any additional data that needs to be recorded here
@@ -192,13 +188,13 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const comp_feedback = {
       type: HtmlButtonResponsePlugin,
       stimulus: function () {
-          var last_correct_resp = jsPsych.data.getLastTrialData().values()[0].correct;
+        var last_correct_resp = jsPsych.data.getLastTrialData().values()[0].correct;
 
-          if (last_correct_resp) {
-              return `<span style='color:green'><h2>You passed the comprehension check!</h2></span> ` + `<br>When you're ready, please click <b>Next</b> to begin the study. `
-          } else {
-              return `<span style='color:red'><h2>You failed to respond <b>correctly</b> to all parts of the comprehension check.</h2></span> ` + `<br>Please click <b>Next</b> to revisit the instructions. `
-          }
+        if (last_correct_resp) {
+            return `<span style='color:green'><h2>You passed the comprehension check!</h2></span> ` + `<br>When you're ready, please click <b>Next</b> to begin the study. `
+        } else {
+            return `<span style='color:red'><h2>You failed to respond <b>correctly</b> to all parts of the comprehension check.</h2></span> ` + `<br>Please click <b>Next</b> to revisit the instructions. `
+        }
       },
       choices: ['Next'],
       data: {
@@ -211,8 +207,9 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const comp_loop = {
       timeline: [instructions, exampleTrial, comp_check, comp_feedback],
       loop_function: function (data) {
+          console.log(data.values());
           // return false if comprehension passes to break loop
-          return (!(data.values()[3].correct));
+          return (!(data.values()[2].correct));
       }
   };
 
