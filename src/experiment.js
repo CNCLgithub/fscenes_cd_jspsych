@@ -12,6 +12,7 @@ import "../styles/main.scss";
 // import jatos from "@jatos/jatos";
 import ResizePlugin from "@jspsych/plugin-resize";
 import PreloadPlugin from "@jspsych/plugin-preload";
+import ExternalHtmlPlugin from "@jspsych/plugin-external-html";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
 import SurveyTextPlugin from "@jspsych/plugin-survey-text";
 import InstructionsPlugin from "@jspsych/plugin-instructions";
@@ -24,11 +25,10 @@ import { initJsPsych } from "jspsych";
 
 // trial list
 import trial_list_wrapped from '../assets/condlist.json';
-const trial_list = trial_list_wrapped[0];
-console.log(trial_list);
+const trial_list = trial_list_wrapped[0].slice(0, 4);
 
 // Define global experiment variables
-var N_TRIALS = 128;
+var N_TRIALS = trial_list.length;
 var EXP_DURATION = 20;
 const IMAGE_PATH = 'data/images';
 const STIM_IMAGE_W = '11.25cm';
@@ -48,20 +48,24 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   const path_a = `assets/images/${img_a}`;
   const path_b = `assets/images/${img_b}`;
   const sd = {
-      type: SameDifferentHtmlPlugin,
-      stimuli: [
-        // from https://stackoverflow.com/a/17698171
-        // TODO: set image scale
-        `<div class="centered"><image src=${path_a} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`,
-        `<div class="centered"><image src=${path_b} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`
-      ],
-      prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
-      same_key: 'f',
-      different_key: 'j',
-      first_stim_duration: STIM_IMAGE_DUR,
-      gap_duration: STIM_MASK_DUR,
-      second_stim_duration: STIM_IMAGE_DUR,
-      answer: img_a == img_b ? 'same' : 'different'
+    type: SameDifferentHtmlPlugin,
+    stimuli: [
+      // from https://stackoverflow.com/a/17698171
+      // TODO: set image scale
+      `<div class="centered"><image src=${path_a} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`,
+      `<div class="centered"><image src=${path_b} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`
+    ],
+    prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
+    same_key: 'f',
+    different_key: 'j',
+    first_stim_duration: STIM_IMAGE_DUR,
+    gap_duration: STIM_MASK_DUR,
+    second_stim_duration: STIM_IMAGE_DUR,
+    answer: img_a == img_b ? 'same' : 'different',
+    data: {
+      a: img_a.slice(0, -4),
+      b: img_b.slice(0, -4),
+    }
   };
   return (sd);
 };
@@ -82,12 +86,24 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   const timeline = [];
 
+  // consent
+  timeline.push({
+    type: ExternalHtmlPlugin,
+    url: '../assets/consent.html',
+    cont_btn: 'start',
+    check_fn: function() {
+      if (document.getElementById('consent_checkbox').checked) {
+        return true;
+      } else {
+        alert('You must tick the checkbox to continue with the study.')
+      }
+    }
+  });
+
   // Preload assets
   timeline.push({
     type: PreloadPlugin,
     images: assetPaths.images,
-    audio: assetPaths.audio,
-    video: assetPaths.video,
   });
 
   // Switch to fullscreen
@@ -207,7 +223,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const comp_loop = {
       timeline: [instructions, exampleTrial, comp_check, comp_feedback],
       loop_function: function (data) {
-          console.log(data.values());
           // return false if comprehension passes to break loop
           return (!(data.values()[2].correct));
       }
@@ -218,22 +233,24 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     timeline.push(comp_loop);
   };
 
-  const exp_timeline = [];
-  for (const trial of trial_list) {
+  // add exp trials with random shuffle, unique per session
+  for (const trial of jsPsych.randomization.shuffle(trial_list)) {
       const [img_a, img_b, flipX] = trial
-      exp_timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
+      timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
   };
-  timeline.push({
-    timeline : exp_timeline,
-    randomize_order : true
-  });
 
-  // exit
   timeline.push({
-    type: HtmlButtonResponsePlugin,
-    stimulus: `<h2><b>Thank you for helping us with our study! :) </b></h2><br><br> ` +
-        `Click <b>Done</b> to submit your responses. <br> `,
-    choices: ['<b>Done</b>'],
+    type: SurveyTextPlugin,
+    preamble: `<h2><b>Thank you for helping us with our study! :) </b></h2><br><br> ` +
+          `Please fill out the survey below and click <b>Done</b> to submit your responses. <br> `,
+    questions: [
+      {prompt: 'Did you find yourself using any strategies while performing judgment? ',
+       name: 'Strategy', rows: 5, placeholder : 'NA'},
+
+      {prompt: "Are there any additional comments you'd like to add? ",
+       name: 'General', rows: 5, placeholder : 'NA'}
+    ],
+    button_label : 'Done'
   });
 
   await jsPsych.run(timeline);
