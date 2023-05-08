@@ -23,22 +23,24 @@ import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
 import ImageKeyboardResponsePlugin from "@jspsych/plugin-image-keyboard-response";
 import { initJsPsych } from "jspsych";
 
+// Prolific variables
+const PROLIFIC_URL = 'https://app.prolific.co/submissions/complete?cc=782B6DAB';
+
 // trial list
 import trial_list_wrapped from '../assets/condlist.json';
-const trial_list = trial_list_wrapped[0].slice(0, 4);
+const trial_list = trial_list_wrapped[0];
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 var EXP_DURATION = 20;
-const IMAGE_PATH = 'data/images';
-const STIM_IMAGE_W = '11.25cm';
-const STIM_IMAGE_H = '7.5cm';
+const STIM_IMAGE_W = '12.75cm';
+const STIM_IMAGE_H = '8.5cm';
 const STIM_IMAGE_DUR = 500; // ms
 const STIM_MASK_DUR = 750; // ms
 const STIM_IMAGE_FLIPY = false;
 
 // Debug Variables
-const SKIP_PROLIFIC_ID = true;
+const SKIP_PROLIFIC_ID = false;
 const SKIP_INSTRUCTIONS = false;
 
 /*  helper to generate timeline parts for a trial */
@@ -61,7 +63,9 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     first_stim_duration: STIM_IMAGE_DUR,
     gap_duration: STIM_MASK_DUR,
     second_stim_duration: STIM_IMAGE_DUR,
+    post_trial_gap: 1000, // 1000ms gap
     answer: img_a == img_b ? 'same' : 'different',
+    // trial data used for analysis
     data: {
       a: img_a.slice(0, -4),
       b: img_b.slice(0, -4),
@@ -69,6 +73,7 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   };
   return (sd);
 };
+
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
  *
@@ -78,6 +83,9 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const jsPsych = initJsPsych({
     show_progress_bar: true,
     // TODO: figure this out; see https://github.com/bjoluc/jspsych-builder/issues/38
+    on_finish: function(data) {
+      jatos.endStudyAndRedirect(PROLIFIC_URL, jsPsych.data.get().json());
+    }
     // on_finish: () => jatos.endStudy(jsPsych.data.get().json()),
     // on_trial_finish: function (data) {
     //   jatos.appendResultData(data);
@@ -89,7 +97,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   // consent
   timeline.push({
     type: ExternalHtmlPlugin,
-    url: '../assets/consent.html',
+    url: assetPaths.misc[1],
     cont_btn: 'start',
     check_fn: function() {
       if (document.getElementById('consent_checkbox').checked) {
@@ -99,6 +107,19 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       }
     }
   });
+
+    if (!SKIP_PROLIFIC_ID) {
+      timeline.push({
+            type: SurveyTextPlugin,
+            questions: [{
+                prompt: 'Please enter your Prolific ID',
+                required: true
+            }],
+            data: {
+                type: "prolific_id",
+            }
+      });
+    };
 
   // Preload assets
   timeline.push({
@@ -242,13 +263,13 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   timeline.push({
     type: SurveyTextPlugin,
     preamble: `<h2><b>Thank you for helping us with our study! :) </b></h2><br><br> ` +
-          `Please fill out the survey below and click <b>Done</b> to submit your responses. <br> `,
+          `Please fill out the survey below and click <b>Done</b> to complete the experiment. <br> `,
     questions: [
       {prompt: 'Did you find yourself using any strategies while performing judgment? ',
-       name: 'Strategy', rows: 5, placeholder : 'NA'},
+       name: 'Strategy', rows: 5, placeholder : 'None'},
 
       {prompt: "Are there any additional comments you'd like to add? ",
-       name: 'General', rows: 5, placeholder : 'NA'}
+       name: 'General', rows: 5, placeholder : 'None'}
     ],
     button_label : 'Done'
   });
@@ -257,5 +278,5 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Return the jsPsych instance so jsPsych Builder can access the experiment results (remove this
   // if you handle results yourself, be it here or in `on_finish()`)
-  return jsPsych;
+  // return jsPsych;
 }
