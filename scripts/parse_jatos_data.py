@@ -15,7 +15,7 @@ def parse_trial_data(df, data : dict):
 
 def parse_jatos_file(path : str):
 
-    unique_id = path.split('_')[-1][:-4]
+    unique_id = int(path.split('_')[-1][:-9])
 
     with open(path, 'r') as f:
         timeline = json.load(f)
@@ -39,13 +39,14 @@ def parse_jatos_file(path : str):
 
 def main():
     data_dir = "data"
-    data_files = glob.glob(f'{data_dir}/*.txt')
+    data_files = glob.glob(f'{data_dir}/study_result_*/*/data.txt')
     result = pl.DataFrame()
     for f in data_files:
         df = parse_jatos_file(f)
         result = result.vstack(df)
 
     print(result)
+    result.write_csv(f'{data_dir}/parsed_trials.csv')
 
 if __name__ == '__main__':
     main()
