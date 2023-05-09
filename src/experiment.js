@@ -33,8 +33,8 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 var EXP_DURATION = 20;
-const STIM_IMAGE_W = '12.75cm';
-const STIM_IMAGE_H = '8.5cm';
+const STIM_IMAGE_W = '15cm';
+const STIM_IMAGE_H = '10cm';
 const STIM_IMAGE_DUR = 500; // ms
 const STIM_MASK_DUR = 750; // ms
 const STIM_IMAGE_FLIPY = false;
