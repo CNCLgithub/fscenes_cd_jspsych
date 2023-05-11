@@ -34,8 +34,8 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 var EXP_DURATION = 20;
-const STIM_IMAGE_W = '9cm'; // verified to be the same as vss 2022
-const STIM_IMAGE_H = '6cm';
+const STIM_IMAGE_W = '720px';
+const STIM_IMAGE_H = '480px';
 // vss 2022 parameters
 // const STIM_IMAGE_DUR = 500; // ms
 // const STIM_MASK_DUR = 750; // ms
@@ -47,19 +47,22 @@ const STIM_IMAGE_FLIPY = false;
 const SKIP_PROLIFIC_ID = false;
 const SKIP_INSTRUCTIONS = false;
 
-/*  helper to generate timeline parts for a trial */
-var genTrial = function (jsPsych, img_a, img_b, flipx) {
+var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
   const sy = STIM_IMAGE_FLIPY ? -1 : 1;
-  const path_a = `assets/images/${img_a}`;
-  const path_b = `assets/images/${img_b}`;
+  const path = `assets/images/${img}`;
+  // from https://stackoverflow.com/a/17698171
+  const ihtml = `<div class="centered"><image src=${path} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`;
+  return ihtml;
+};
+
+/*  helper to generate timeline parts for a trial */
+var genTrial = function (jsPsych, img_a, img_b, flipx) {
   const sd = {
     type: SameDifferentHtmlPlugin,
     stimuli: [
-      // from https://stackoverflow.com/a/17698171
-      // TODO: set image scale
-      `<div class="centered"><image src=${path_a} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`,
-      `<div class="centered"><image src=${path_b} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`
+      genImgHtml(img_a, flipx),
+      genImgHtml(img_b, flipx),
     ],
     prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
     same_key: 'f',
@@ -125,13 +128,11 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     });
   };
 
-
   timeline.push({
     type: PreloadPlugin,
     images: assetPaths.images,
   });
 
-  // Switch to fullscreen
   timeline.push({
     type: FullscreenPlugin,
     fullscreen_mode: true,
@@ -152,7 +153,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     show_clickable_nav: true,
     allow_backward: false,
     data: {
-        // add any additional data that needs to be recorded here
         type: "welcome",
     }
   });
@@ -161,8 +161,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   timeline.push({
     type: VirtualChinrestPlugin,
     blindspot_reps: 3,
-    resize_units: "cm",
-    pixels_per_unit: 80
+    resize_units: "deg",
+    pixels_per_unit: 72  // 720px -> 10 deg
   });
 
 
