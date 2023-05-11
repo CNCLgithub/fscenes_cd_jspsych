@@ -152,7 +152,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     show_clickable_nav: true,
     allow_backward: false,
     data: {
-        add any additional data that needs to be recorded here
+        // add any additional data that needs to be recorded here
         type: "welcome",
     }
   });
