@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 0.2.0
+ * @version 0.3.0
  *
  * @assets assets/
  */
@@ -39,7 +39,7 @@ const STIM_IMAGE_H = '480px';
 // vss 2022 parameters
 // const STIM_IMAGE_DUR = 500; // ms
 // const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_DUR = 500; // ms (potentially bump to 850ms)
+const STIM_IMAGE_DUR = 850; // ms
 const STIM_MASK_DUR = 750; // ms
 const STIM_IMAGE_FLIPY = false;
 
