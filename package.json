@@ -18,6 +18,7 @@
     "@jspsych/plugin-same-different-html": "^1.1.2",
     "@jspsych/plugin-survey-multi-choice": "^1.1.2",
     "@jspsych/plugin-survey-text": "^1.1.2",
+    "@jspsych/plugin-virtual-chinrest": "^2.0.2",
     "jspsych": "^7.3.1"
   },
   "devDependencies": {

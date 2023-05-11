@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 0.1.0
+ * @version 0.2.0
  *
  * @assets assets/
  */
@@ -11,6 +11,7 @@ import "../styles/main.scss";
 
 // import jatos from "@jatos/jatos";
 import ResizePlugin from "@jspsych/plugin-resize";
+import VirtualChinrestPlugin from '@jspsych/plugin-virtual-chinrest';
 import PreloadPlugin from "@jspsych/plugin-preload";
 import ExternalHtmlPlugin from "@jspsych/plugin-external-html";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
@@ -33,9 +34,12 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 var EXP_DURATION = 20;
-const STIM_IMAGE_W = '15cm';
-const STIM_IMAGE_H = '10cm';
-const STIM_IMAGE_DUR = 500; // ms
+const STIM_IMAGE_W = '9cm'; // verified to be the same as vss 2022
+const STIM_IMAGE_H = '6cm';
+// vss 2022 parameters
+// const STIM_IMAGE_DUR = 500; // ms
+// const STIM_MASK_DUR = 750; // ms
+const STIM_IMAGE_DUR = 500; // ms (potentially bump to 850ms)
 const STIM_MASK_DUR = 750; // ms
 const STIM_IMAGE_FLIPY = false;
 
@@ -82,14 +86,14 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
 export async function run({ assetPaths, input = {}, environment, title, version }) {
   const jsPsych = initJsPsych({
     show_progress_bar: true,
-    // TODO: figure this out; see https://github.com/bjoluc/jspsych-builder/issues/38
     on_finish: function(data) {
-      jatos.endStudyAndRedirect(PROLIFIC_URL, jsPsych.data.get().json());
+      if (typeof jatos !== 'undefined') {
+        // in jatos environment
+        jatos.endStudyAndRedirect(PROLIFIC_URL, jsPsych.data.get().json());
+      } else {
+        return jsPsych;
+      };
     }
-    // on_finish: () => jatos.endStudy(jsPsych.data.get().json()),
-    // on_trial_finish: function (data) {
-    //   jatos.appendResultData(data);
-    // },
   });
 
   const timeline = [];
@@ -108,20 +112,20 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }
   });
 
-    if (!SKIP_PROLIFIC_ID) {
-      timeline.push({
-            type: SurveyTextPlugin,
-            questions: [{
-                prompt: 'Please enter your Prolific ID',
-                required: true
-            }],
-            data: {
-                type: "prolific_id",
-            }
-      });
-    };
+  if (!SKIP_PROLIFIC_ID) {
+    timeline.push({
+      type: SurveyTextPlugin,
+      questions: [{
+          prompt: 'Please enter your Prolific ID',
+          required: true
+      }],
+      data: {
+          type: "prolific_id",
+      }
+    });
+  };
 
-  // Preload assets
+
   timeline.push({
     type: PreloadPlugin,
     images: assetPaths.images,
@@ -148,22 +152,17 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     show_clickable_nav: true,
     allow_backward: false,
     data: {
-        // add any additional data that needs to be recorded here
+        add any additional data that needs to be recorded here
         type: "welcome",
     }
   });
 
-  // resizing
+  // virtual chinrest
   timeline.push({
-      type: ResizePlugin,
-      item_width: 480, // 3 + 3 / 8,
-      item_height: 288, // 2 + 1 / 8,
-      starting_size: 384,
-      prompt: `<p>Please sit comfortably in front of you monitor and outstretch your arm holding a credit card (or a similary sized ID card).</p> <p>Click and drag the lower right corner of the box until the box is the same size as a credit card held up to the screen.</p> `,
-      pixels_per_unit: 1,
-      data: {
-          type: "cc_scale"
-      },
+    type: VirtualChinrestPlugin,
+    blindspot_reps: 3,
+    resize_units: "cm",
+    pixels_per_unit: 80
   });
 
 
@@ -171,14 +170,15 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const instructions = {
       type: InstructionsPlugin,
       pages: [
-          `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw. Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` + `Click <b>Next</b> to continue.`,
-          `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
-          `In this study, two images will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
-          `After the second image dissapears, press <b>"f"</b> if the images are the <b>SAME</b> or <b>"j"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
-          `Click <b>Next</b> to continue.`,
-          `<strong>The next screen will be a demonstration trial.</strong> <br>` +
-          `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
-          `Click <b>Next</b> when you are ready to start the demonstration.`,
+        `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw. Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` + `Click <b>Next</b> to continue.`,
+        `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
+        `In this study, two images (like the one below) will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
+        `After the second image dissapears, press <b>"f"</b> if the images are the <b>SAME</b> or <b>"j"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
+        `<img src="assets/images/example_a.png"></img> <br>` +
+        `Click <b>Next</b> to continue.`,
+        `<strong>The next screen will be a demonstration trial.</strong> <br>` +
+        `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
+        `Click <b>Next</b> when you are ready to start the demonstration.`,
       ],
       show_clickable_nav: true,
       show_page_number: true,
@@ -276,7 +276,4 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   await jsPsych.run(timeline);
 
-  // Return the jsPsych instance so jsPsych Builder can access the experiment results (remove this
-  // if you handle results yourself, be it here or in `on_finish()`)
-  // return jsPsych;
 }
