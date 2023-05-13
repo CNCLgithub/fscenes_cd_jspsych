@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 0.3.0
+ * @version 1.2.0.0
  *
  * @assets assets/
  */
@@ -34,12 +34,14 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 var EXP_DURATION = 20;
-const STIM_IMAGE_W = '720px';
-const STIM_IMAGE_H = '480px';
+const STIM_IMAGE_W = 720;
+const STIM_IMAGE_H = 480;
+const STIM_DEG = 10;
+const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 // vss 2022 parameters
 // const STIM_IMAGE_DUR = 500; // ms
 // const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_DUR = 850; // ms
+const STIM_IMAGE_DUR = 500; // ms
 const STIM_MASK_DUR = 750; // ms
 const STIM_IMAGE_FLIPY = false;
 
@@ -52,7 +54,9 @@ var genImgHtml = function (img, flipx) {
   const sy = STIM_IMAGE_FLIPY ? -1 : 1;
   const path = `assets/images/${img}`;
   // from https://stackoverflow.com/a/17698171
-  const ihtml = `<div class="centered"><image src=${path} style="width:${STIM_IMAGE_W};height:${STIM_IMAGE_H};scaleX(${sx});scaleY(${sy})"\></div>`;
+  const trans = `transform: scaleY(${sy}) scaleX(${sx});`
+  const img_dims = `width:${STIM_IMAGE_W}px;height:${STIM_IMAGE_H}px`
+  const ihtml = `<image src=${path} style="${img_dims};${trans}"\>`;
   return ihtml;
 };
 
@@ -61,8 +65,8 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   const sd = {
     type: SameDifferentHtmlPlugin,
     stimuli: [
-      genImgHtml(img_a, flipx),
-      genImgHtml(img_b, flipx),
+      `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
+      `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
     ],
     prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
     same_key: 'f',
@@ -101,7 +105,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   const timeline = [];
 
-  // consent
   timeline.push({
     type: ExternalHtmlPlugin,
     url: assetPaths.misc[1],
@@ -138,7 +141,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     fullscreen_mode: true,
   });
 
-  // Welcome screen
   timeline.push({
     type: InstructionsPlugin,
     pages: [
@@ -157,25 +159,26 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }
   });
 
-  // virtual chinrest
   timeline.push({
     type: VirtualChinrestPlugin,
     blindspot_reps: 3,
     resize_units: "deg",
-    pixels_per_unit: 72  // 720px -> 10 deg
+    pixels_per_unit: PIXELS_PER_UNIT
   });
 
 
-  // instructions
   const instructions = {
       type: InstructionsPlugin,
       pages: [
-        `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw. Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` + `Click <b>Next</b> to continue.`,
+        `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw.`+
+          `Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` +
+          `Click <b>Next</b> to continue.`,
         `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
         `In this study, two images (like the one below) will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
         `After the second image dissapears, press <b>"f"</b> if the images are the <b>SAME</b> or <b>"j"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
-        `<img src="assets/images/example_a.png"></img> <br>` +
-        `Click <b>Next</b> to continue.`,
+          genImgHtml("example_a.png", false) +
+          // `<img src="assets/images/example_a.png"></img> <br>` +
+          `<br> Click <b>Next</b> to continue.`,
         `<strong>The next screen will be a demonstration trial.</strong> <br>` +
         `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
         `Click <b>Next</b> when you are ready to start the demonstration.`,
