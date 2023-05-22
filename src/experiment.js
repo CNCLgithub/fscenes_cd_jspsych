@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 1.2.0.0
+ * @version 3.2.0.0
  *
  * @assets assets/
  */
@@ -68,9 +68,9 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
       `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
       `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
     ],
-    prompt: `<p>Press 'f' if the images are the <b>SAME</b>.</p> <p>Press 'j' if the images are <b>DIFFERENT</b>.</p>`,
-    same_key: 'f',
-    different_key: 'j',
+    prompt: `<p>Press 'f' if the images are the <b>DIFFERENT</b>.</p> <p>Press 'j' if the images are the <b>SAME</b>.</p>`,
+    same_key: 'j',
+    different_key: 'f',
     first_stim_duration: STIM_IMAGE_DUR,
     gap_duration: STIM_MASK_DUR,
     second_stim_duration: STIM_IMAGE_DUR,
@@ -175,7 +175,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
           `Click <b>Next</b> to continue.`,
         `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
         `In this study, two images (like the one below) will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
-        `After the second image dissapears, press <b>"f"</b> if the images are the <b>SAME</b> or <b>"j"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
+        `After the second image dissapears, press <b>"j"</b> if the images are the <b>SAME</b> or <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
           genImgHtml("example_a.png", false) +
           // `<img src="assets/images/example_a.png"></img> <br>` +
           `<br> Click <b>Next</b> to continue.`,
@@ -200,7 +200,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       questions: [{
               prompt: "Which key should you respond with if the two images are the same?",
               name: 'check1',
-              options: ['j','f','s'],
+              options: ['f','j','s'],
               required: true
           },
           {
@@ -216,7 +216,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
           var q1 = data.response.check1;
           var q2 = data.response.check2;
           // set to true if both comp checks are passed
-          data.correct = (q1 == 'f' && q2 == 'false');
+          data.correct = (q1 == 'j' && q2 == 'false');
       },
       data: {
           // add any additional data that needs to be recorded here
