@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 3.2.0.0
+ * @version 5.2.0
  *
  * @assets assets/
  */
