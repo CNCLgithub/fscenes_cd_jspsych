@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 5.2.0
+ * @version 6.2.0
  *
  * @assets assets/
  */
@@ -33,7 +33,7 @@ const trial_list = trial_list_wrapped[0];
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
-var EXP_DURATION = 20;
+var EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 10;
