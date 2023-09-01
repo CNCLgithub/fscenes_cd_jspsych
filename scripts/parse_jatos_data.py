@@ -8,8 +8,10 @@ def parse_trial_data(df, data : dict):
     scene, door = data['a'].split('_')
     df['scene'].append(int(scene))
     df['door'].append(int(door))
-    df['same'].append(data['answer'] == 'same')
-    df['correct'].append(data['correct'])
+    same = data['a'] == data['b']
+    correct = data['response'] == 'j' if same else data['response'] == 'f'
+    df['same'].append(same)
+    df['correct'].append(correct)
     df['rt'].append(data['rt'])
     df['order'].append(data['trial_index'])
 
@@ -32,6 +34,8 @@ def parse_jatos_file(path : str):
             'correct' : [], 'rt' : [], 'order' : []}
 
     for exp_trial in timeline:
+        if (exp_trial['response'] is None):
+            continue
         parse_trial_data(data, exp_trial)
 
     data['uid'] = unique_id
