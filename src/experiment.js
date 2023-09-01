@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 8.2.1
+ * @version 8.2.0
  *
  * @assets assets/
  */
@@ -33,8 +33,7 @@ const trial_list = trial_list_wrapped[0];
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
-const N_MASKS = 5;
-var EXP_DURATION = 20; // in minutes
+var EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 10;
@@ -42,9 +41,9 @@ const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 // vss 2022 parameters
 // const STIM_IMAGE_DUR = 500; // ms
 // const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_DUR = 2000; // ms
+const STIM_IMAGE_DUR = 500; // ms
 const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_FLIPY = true; // for inverted experiment
+const STIM_IMAGE_FLIPY = false; // for inverted experiment
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = false;
@@ -61,75 +60,30 @@ var genImgHtml = function (img, flipx) {
   return ihtml;
 };
 
-var sampleRandomMask = function (jsPsych) {
-  const mask_id = jsPsych.randomization.randomInt(1, N_MASKS);
-  const mask_file = `mask_${mask_id}.png`
-  return mask_file;
-};
-
 /*  helper to generate timeline parts for a trial */
 var genTrial = function (jsPsych, img_a, img_b, flipx) {
-  const img_1 = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_IMAGE_DUR,
-  };
-  const mask_img = sampleRandomMask(jsPsych);
-  const mask = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(mask_img, false)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_MASK_DUR,
-
-  };
-  const img_2 = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_IMAGE_DUR,
-  };
-  const response = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: '',
-    choices: ['f', 'j'],
+  const sd = {
+    type: SameDifferentHtmlPlugin,
+    stimuli: [
+      `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
+      `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
+    ],
     prompt: `<p>Press 'f' if the images are the <b>DIFFERENT</b>.</p> <p>Press 'j' if the images are the <b>SAME</b>.</p>`,
+    same_key: 'j',
+    different_key: 'f',
+    first_stim_duration: STIM_IMAGE_DUR,
+    gap_duration: STIM_MASK_DUR,
+    second_stim_duration: STIM_IMAGE_DUR,
     post_trial_gap: 1000, // 1000ms gap
-
-  };
-  const tl = {
-    timeline: [img_1, mask, img_2, response],
+    answer: img_a == img_b ? 'same' : 'different',
+    // trial data used for analysis
     data: {
       a: img_a.slice(0, -4),
       b: img_b.slice(0, -4),
-      mask: mask_img
     }
   };
-  return (tl);
+  return (sd);
 };
-// var genTrial = function (jsPsych, img_a, img_b, flipx) {
-//   const sd = {
-//     type: SameDifferentHtmlPlugin,
-//     stimuli: [
-//       `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
-//       `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
-//     ],
-//     prompt: `<p>Press 'f' if the images are the <b>DIFFERENT</b>.</p> <p>Press 'j' if the images are the <b>SAME</b>.</p>`,
-//     same_key: 'j',
-//     different_key: 'f',
-//     first_stim_duration: STIM_IMAGE_DUR,
-//     gap_duration: STIM_MASK_DUR,
-//     second_stim_duration: STIM_IMAGE_DUR,
-//     post_trial_gap: 1000, // 1000ms gap
-//     answer: img_a == img_b ? 'same' : 'different',
-//     // trial data used for analysis
-//     data: {
-//       a: img_a.slice(0, -4),
-//       b: img_b.slice(0, -4),
-//     }
-//   };
-//   return (sd);
-// };
 
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
@@ -294,8 +248,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       timeline: [instructions, exampleTrial, comp_check, comp_feedback],
       loop_function: function (data) {
           // return false if comprehension passes to break loop
-        let values = data.values();
-        return (!(values[values.length - 2].correct));
+          return (!(data.values()[2].correct));
       }
   };
 
