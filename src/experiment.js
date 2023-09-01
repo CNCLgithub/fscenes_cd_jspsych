@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 8.2.0
+ * @version 8.2.1
  *
  * @assets assets/
  */
@@ -44,7 +44,7 @@ const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 // const STIM_MASK_DUR = 750; // ms
 const STIM_IMAGE_DUR = 2000; // ms
 const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_FLIPY = false; // for inverted experiment
+const STIM_IMAGE_FLIPY = true; // for inverted experiment
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = false;
