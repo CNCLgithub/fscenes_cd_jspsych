@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 8.2.0
+ * @version 9.0.2
  *
  * @assets assets/
  */
@@ -10,14 +10,12 @@
 import "../styles/main.scss";
 
 // import jatos from "@jatos/jatos";
-import ResizePlugin from "@jspsych/plugin-resize";
 import VirtualChinrestPlugin from '@jspsych/plugin-virtual-chinrest';
 import PreloadPlugin from "@jspsych/plugin-preload";
 import ExternalHtmlPlugin from "@jspsych/plugin-external-html";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
 import SurveyTextPlugin from "@jspsych/plugin-survey-text";
 import InstructionsPlugin from "@jspsych/plugin-instructions";
-import SameDifferentHtmlPlugin from "@jspsych/plugin-same-different-html";
 import SurveyMultiChoicePlugin from "@jspsych/plugin-survey-multi-choice";
 import HtmlButtonResponsePlugin from "@jspsych/plugin-html-button-response";
 import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
@@ -37,13 +35,10 @@ const N_MASKS = 5;
 var EXP_DURATION = 20; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
-const STIM_DEG = 10;
+const STIM_DEG = 12;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-// vss 2022 parameters
-// const STIM_IMAGE_DUR = 500; // ms
-// const STIM_MASK_DUR = 750; // ms
-const STIM_IMAGE_DUR = 2000; // ms
-const STIM_MASK_DUR = 750; // ms
+const STIM_IMAGE_DUR = 1500; // ms
+const STIM_MASK_DUR = 1500; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 
 // Debug Variables
@@ -107,29 +102,6 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   };
   return (tl);
 };
-// var genTrial = function (jsPsych, img_a, img_b, flipx) {
-//   const sd = {
-//     type: SameDifferentHtmlPlugin,
-//     stimuli: [
-//       `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
-//       `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
-//     ],
-//     prompt: `<p>Press 'f' if the images are the <b>DIFFERENT</b>.</p> <p>Press 'j' if the images are the <b>SAME</b>.</p>`,
-//     same_key: 'j',
-//     different_key: 'f',
-//     first_stim_duration: STIM_IMAGE_DUR,
-//     gap_duration: STIM_MASK_DUR,
-//     second_stim_duration: STIM_IMAGE_DUR,
-//     post_trial_gap: 1000, // 1000ms gap
-//     answer: img_a == img_b ? 'same' : 'different',
-//     // trial data used for analysis
-//     data: {
-//       a: img_a.slice(0, -4),
-//       b: img_b.slice(0, -4),
-//     }
-//   };
-//   return (sd);
-// };
 
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
@@ -222,8 +194,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
         `In this study, two images (like the one below) will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
         `After the second image dissapears, press <b>"j"</b> if the images are the <b>SAME</b> or <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
-          genImgHtml("example_a.png", false) +
-          // `<img src="assets/images/example_a.png"></img> <br>` +
+          genImgHtml("1_1.png", false) +
+          // `<img src="assets/images/1_1.png"></img> <br>` +
           `<br> Click <b>Next</b> to continue.`,
         `<strong>The next screen will be a demonstration trial.</strong> <br>` +
         `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
@@ -237,7 +209,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
 
   //        example
-  const exampleTrial = genTrial(jsPsych, "example_a.png", "example_b.png", false);
+  const exampleTrial = genTrial(jsPsych, "1_1.png", "1_1_removed.png", false);
 
   // comprehension check
   const comp_check = {

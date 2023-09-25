@@ -34,7 +34,8 @@ def parse_jatos_file(path : str):
             'correct' : [], 'rt' : [], 'order' : []}
 
     for exp_trial in timeline:
-        if (exp_trial['response'] is None):
+        if exp_trial.get('response', None) is None:
+        # if (exp_trial['response'] is None):
             continue
         parse_trial_data(data, exp_trial)
 
@@ -50,6 +51,7 @@ def main():
         result = result.vstack(df)
 
     print(result)
+    print(result.group_by("same").agg(pl.mean("correct")))
     result.write_csv(f'{data_dir}/parsed_trials.csv')
 
 if __name__ == '__main__':
