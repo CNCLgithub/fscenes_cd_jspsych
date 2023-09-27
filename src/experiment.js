@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 9.0.2
+ * @version 9.0.4
  *
  * @assets assets/
  */
@@ -32,13 +32,13 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 const N_MASKS = 5;
-var EXP_DURATION = 20; // in minutes
+var EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 12;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 1500; // ms
-const STIM_MASK_DUR = 1500; // ms
+const STIM_IMAGE_DUR = 750; // ms
+const STIM_MASK_DUR = 1000; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 
 // Debug Variables

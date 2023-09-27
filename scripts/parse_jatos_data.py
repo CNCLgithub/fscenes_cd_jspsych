@@ -2,6 +2,7 @@
 
 import json
 import glob
+import argparse
 import polars as pl
 
 def parse_trial_data(df, data : dict):
@@ -43,7 +44,15 @@ def parse_jatos_file(path : str):
     return pl.DataFrame(data)
 
 def main():
-    data_dir = "data"
+
+    parser = argparse.ArgumentParser(
+        description = 'Parses JATOS data',
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument('dataset', type = str,
+                        help = "Which scene dataset to use")
+    args = parser.parse_args()
+    data_dir = f"data/{args.dataset}"
     data_files = glob.glob(f'{data_dir}/study_result_*/*/data.txt')
     result = pl.DataFrame()
     for f in data_files:
@@ -52,7 +61,7 @@ def main():
 
     print(result)
     print(result.group_by("same").agg(pl.mean("correct")))
-    result.write_csv(f'{data_dir}/parsed_trials.csv')
+    result.write_csv(f'{data_dir}/{args.dataset}.csv')
 
 if __name__ == '__main__':
     main()
