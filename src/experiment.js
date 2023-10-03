@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
  * @description Change Detection experiment for FunctionalScenes
- * @version 9.0.4
+ * @version 0.12.0
  *
  * @assets assets/
  */
@@ -32,7 +32,7 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 const N_MASKS = 5;
-var EXP_DURATION = 10; // in minutes
+var EXP_DURATION = 5; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 12;
@@ -103,12 +103,27 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   return (tl);
 };
 
+// declare condition variable
+var condition_assignment;
+
+var assign = function () {
+  if (typeof jatos !== 'undefined') {
+    // in jatos environment
+    console.log(jatos.workerId);
+    condition_assignment = ((jatos.workerId - 1) % N_TRIALS) + 1;
+  } else {
+    console.log("jatos not found; default condition = 1");
+    condition_assignment = 1;
+  };
+};
+
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
  *
  * @type {import("jspsych-builder").RunFunction}
  */
 export async function run({ assetPaths, input = {}, environment, title, version }) {
+
   const jsPsych = initJsPsych({
     show_progress_bar: true,
     on_finish: function(data) {
@@ -120,6 +135,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       };
     }
   });
+
+  // assign condition
+  assign();
+
 
   const timeline = [];
 
@@ -189,13 +208,12 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       type: InstructionsPlugin,
       pages: [
         `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw.`+
-          `Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` +
+          `Other times, you won't be -- and this is okay! <br> Just give your best guess each time. <br><br>` +
           `Click <b>Next</b> to continue.`,
-        `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
+        // `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
         `In this study, two images (like the one below) will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
         `After the second image dissapears, press <b>"j"</b> if the images are the <b>SAME</b> or <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
-          genImgHtml("1_1.png", false) +
-          // `<img src="assets/images/1_1.png"></img> <br>` +
+          genImgHtml("example_a.png", false) +
           `<br> Click <b>Next</b> to continue.`,
         `<strong>The next screen will be a demonstration trial.</strong> <br>` +
         `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
@@ -209,7 +227,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
 
   //        example
-  const exampleTrial = genTrial(jsPsych, "1_1.png", "1_1_removed.png", false);
+  const exampleTrial = genTrial(jsPsych, "example_a.png", "example_b.png", false);
 
   // comprehension check
   const comp_check = {
@@ -276,18 +294,17 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     timeline.push(comp_loop);
   };
 
-  // add exp trials with random shuffle, unique per session
-  for (const trial of jsPsych.randomization.shuffle(trial_list)) {
-      const [img_a, img_b, flipX] = trial
-      timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
-  };
+  // given `condition_assignment`, select trial to show
+  console.log(condition_assignment)
+  const [img_a, img_b, flipX] = trial_list[condition_assignment];
+  timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
 
   timeline.push({
     type: SurveyTextPlugin,
-    preamble: `<h2><b>Thank you for helping us with our study! :) </b></h2><br><br> ` +
-          `Please fill out the survey below and click <b>Done</b> to complete the experiment. <br> `,
+    preamble: `<h2><b>Thank you for helping us with our study! This study was designed to be difficult and we value your responses. </b></h2><br><br> ` +
+      `Please fill out the (optional) survey below and click <b>Done</b> to complete the experiment. <br> `,
     questions: [
-      {prompt: 'Did you find yourself using any strategies while performing judgment? ',
+      {prompt: 'Did you find yourself using any strategies while performing the task?',
        name: 'Strategy', rows: 5, placeholder : 'None'},
 
       {prompt: "Are there any additional comments you'd like to add? ",

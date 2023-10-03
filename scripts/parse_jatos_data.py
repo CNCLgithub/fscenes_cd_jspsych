@@ -18,7 +18,7 @@ def parse_trial_data(df, data : dict):
 
 def parse_jatos_file(path : str):
 
-    unique_id = int(path.split('_')[-1][:-9])
+    unique_id = path.split('/')[-3].split('_')[-1]
 
     with open(path, 'r') as f:
         timeline = json.load(f)
