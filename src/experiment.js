@@ -32,7 +32,7 @@ const trial_list = trial_list_wrapped[0];
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
 const N_MASKS = 5;
-var EXP_DURATION = 10; // in minutes
+var EXP_DURATION = 5; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 16;
@@ -121,12 +121,27 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
   return (tl);
 };
 
+// declare condition variable
+var condition_assignment;
+
+var assign = function () {
+  if (typeof jatos !== 'undefined') {
+    // in jatos environment
+    console.log(jatos.workerId);
+    condition_assignment = ((jatos.workerId - 1) % N_TRIALS) + 1;
+  } else {
+    console.log("jatos not found; default condition = 1");
+    condition_assignment = 1;
+  };
+};
+
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
  *
  * @type {import("jspsych-builder").RunFunction}
  */
 export async function run({ assetPaths, input = {}, environment, title, version }) {
+
   const jsPsych = initJsPsych({
     show_progress_bar: true,
     on_finish: function(data) {
@@ -138,6 +153,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       };
     }
   });
+
+  // assign condition
+  assign();
+
 
   const timeline = [];
 
@@ -298,18 +317,17 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     timeline.push(comp_loop);
   };
 
-  // add exp trials with random shuffle, unique per session
-  for (const trial of jsPsych.randomization.shuffle(trial_list)) {
-      const [img_a, img_b, flipX] = trial
-      timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
-  };
+  // given `condition_assignment`, select trial to show
+  console.log(condition_assignment)
+  const [img_a, img_b, flipX] = trial_list[condition_assignment];
+  timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
 
   timeline.push({
     type: SurveyTextPlugin,
-    preamble: `<h2><b>Thank you for helping us with our study! :) </b></h2><br><br> ` +
-          `Please fill out the survey below and click <b>Done</b> to complete the experiment. <br> `,
+    preamble: `<h2><b>Thank you for helping us with our study! This study was designed to be difficult and we value your responses. </b></h2><br><br> ` +
+      `Please fill out the (optional) survey below and click <b>Done</b> to complete the experiment. <br> `,
     questions: [
-      {prompt: 'Did you find yourself using any strategies while performing judgment? ',
+      {prompt: 'Did you find yourself using any strategies while performing the task?',
        name: 'Strategy', rows: 5, placeholder : 'None'},
 
       {prompt: "Are there any additional comments you'd like to add? ",
