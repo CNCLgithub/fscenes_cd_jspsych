@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
- * @description Change Detection experiment for FunctionalScenes
- * @version 9.0.4
+ * @description path-block-2024-03-14 upright 
+ * @version 10.5.3
  *
  * @assets assets/
  */
@@ -23,7 +23,7 @@ import ImageKeyboardResponsePlugin from "@jspsych/plugin-image-keyboard-response
 import { initJsPsych } from "jspsych";
 
 // Prolific variables
-const PROLIFIC_URL = 'https://app.prolific.co/submissions/complete?cc=782B6DAB';
+const PROLIFIC_URL = 'https://app.prolific.com/submissions/complete?cc=782B6DAB';
 
 // trial list
 import trial_list_wrapped from '../assets/condlist.json';
@@ -35,11 +35,13 @@ const N_MASKS = 5;
 var EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
-const STIM_DEG = 12;
+const STIM_DEG = 16;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 750; // ms
+const STIM_IMAGE_DUR = 250; // ms
 const STIM_MASK_DUR = 1000; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
+const REVERSE_ORDER = false; // Reverse image presentation
+
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = false;
@@ -64,6 +66,11 @@ var sampleRandomMask = function (jsPsych) {
 
 /*  helper to generate timeline parts for a trial */
 var genTrial = function (jsPsych, img_a, img_b, flipx) {
+
+  if (REVERSE_ORDER) {
+    [img_a, img_b] = [img_b, img_a]
+  }
+
   const img_1 = {
     type: HtmlKeyboardResponsePlugin,
     stimulus: `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
@@ -92,12 +99,23 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     post_trial_gap: 1000, // 1000ms gap
 
   };
+
+  const mask_2_img = sampleRandomMask(jsPsych);
+  const mask_2 = {
+    type: HtmlKeyboardResponsePlugin,
+    stimulus: `<div class="centered"> ${genImgHtml(mask_2_img, false)} </div>`,
+    choices: "NO_KEYS",
+    trial_duration: STIM_MASK_DUR,
+
+  };
+
   const tl = {
-    timeline: [img_1, mask, img_2, response],
+    timeline: [img_1, mask, img_2, mask_2, response],
     data: {
       a: img_a.slice(0, -4),
       b: img_b.slice(0, -4),
-      mask: mask_img
+      mask: mask_img,
+      mask_2: mask_2_img
     }
   };
   return (tl);
@@ -188,14 +206,18 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const instructions = {
       type: InstructionsPlugin,
       pages: [
-        `The study is designed to be <i>challenging</i>. Sometimes, you'll be certain about what you saw.`+
+        `The study is designed to be <i>challenging</i>. <br> Sometimes, you'll be certain about what you saw.<br>`+
           `Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` +
           `Click <b>Next</b> to continue.`,
-        `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over. But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` + `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` + `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` + `Click <b>Next</b> to continue.`,
-        `In this study, two images (like the one below) will briefly appear one after the other. You will be asked to determine whether the two images are the same. <br>` +
-        `After the second image dissapears, press <b>"j"</b> if the images are the <b>SAME</b> or <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
+        `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over.<br> `+
+          `But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` +
+          `There are <strong>${N_TRIALS} trials</strong> in this study. <br>`+
+          `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>`
+          + `Click <b>Next</b> to continue.`,
+        `In this study, two images (like the one below) will briefly appear one after the other.<br>`+
+          `You will be asked to determine whether the two images are the same. <br>` +
+        `After the second image dissapears, <br> press <b>"j"</b> if the images are the <b>SAME</b> <br> otherwise press <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
           genImgHtml("1_1.png", false) +
-          // `<img src="assets/images/1_1.png"></img> <br>` +
           `<br> Click <b>Next</b> to continue.`,
         `<strong>The next screen will be a demonstration trial.</strong> <br>` +
         `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
@@ -209,7 +231,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
 
   //        example
-  const exampleTrial = genTrial(jsPsych, "1_1.png", "1_1_removed.png", false);
+  const exampleTrial = genTrial(jsPsych, "example_a.png", "example_b.png", false);
 
   // comprehension check
   const comp_check = {

@@ -1,9 +1,24 @@
 #!/usr/bin/env python3
 
+import os
 import json
 import glob
 import argparse
 import polars as pl
+
+
+df_schema = {
+    'scene': pl.UInt8,
+    'door': pl.UInt8,
+    'same': pl.Boolean,
+    'correct': pl.Boolean,
+    'rt': pl.Float64,
+    'order': pl.UInt16,
+    'uid': pl.UInt16
+}
+    # data = {'scene' : [], 'door' : [], 'same' : [],
+    #         'correct' : [], 'rt' : [], 'order' : []}
+    # data['uid'] = unique_id
 
 def parse_trial_data(df, data : dict):
     scene, door = data['a'].split('_')
@@ -16,12 +31,7 @@ def parse_trial_data(df, data : dict):
     df['rt'].append(data['rt'])
     df['order'].append(data['trial_index'])
 
-def parse_jatos_file(path : str):
-
-    unique_id = int(path.split('_')[-1][:-9])
-
-    with open(path, 'r') as f:
-        timeline = json.load(f)
+def parse_subj_data(timeline: dict, unique_id: int):
 
     # look for the start of the experimental trials
     exp_start = 0
@@ -36,12 +46,11 @@ def parse_jatos_file(path : str):
 
     for exp_trial in timeline:
         if exp_trial.get('response', None) is None:
-        # if (exp_trial['response'] is None):
             continue
         parse_trial_data(data, exp_trial)
 
     data['uid'] = unique_id
-    return pl.DataFrame(data)
+    return pl.DataFrame(data, schema=df_schema)
 
 def main():
 
@@ -49,19 +58,26 @@ def main():
         description = 'Parses JATOS data',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('dataset', type = str,
+    parser.add_argument('dataset', type = str, nargs="+",
                         help = "Which scene dataset to use")
     args = parser.parse_args()
-    data_dir = f"data/{args.dataset}"
-    data_files = glob.glob(f'{data_dir}/study_result_*/*/data.txt')
-    result = pl.DataFrame()
-    for f in data_files:
-        df = parse_jatos_file(f)
-        result = result.vstack(df)
+    raw = []
+    for dfile in args.dataset:
+        with open(dfile, "r") as f:
+            for subj in f:
+                raw.append(json.loads(subj))
+
+    result = pl.DataFrame(schema=df_schema)
+    for idx, subj in enumerate(raw):
+        df = parse_subj_data(subj, idx)
+        result.vstack(df, in_place=True)
 
     print(result)
     print(result.group_by("same").agg(pl.mean("correct")))
-    result.write_csv(f'{data_dir}/{args.dataset}.csv')
+
+    dpath_name = args.dataset[0]
+    result_out = dpath_name.replace(".txt", ".csv")
+    result.write_csv(result_out)
 
 if __name__ == '__main__':
     main()
