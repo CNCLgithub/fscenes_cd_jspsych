@@ -16,12 +16,9 @@ df_schema = {
     'order': pl.UInt16,
     'uid': pl.UInt16
 }
-    # data = {'scene' : [], 'door' : [], 'same' : [],
-    #         'correct' : [], 'rt' : [], 'order' : []}
-    # data['uid'] = unique_id
 
 def parse_trial_data(df, data : dict):
-    scene, door = data['a'].split('_')
+    scene, door = data['a'].split('_')[:2]
     df['scene'].append(int(scene))
     df['door'].append(int(door))
     same = data['a'] == data['b']

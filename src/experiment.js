@@ -40,7 +40,7 @@ const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 const STIM_IMAGE_DUR = 250; // ms
 const STIM_MASK_DUR = 1000; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
-const REVERSE_ORDER = false; // Reverse image presentation
+const REVERSE_ORDER = true; // Reverse image presentation
 
 
 // Debug Variables
