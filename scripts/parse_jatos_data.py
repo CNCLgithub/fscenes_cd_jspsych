@@ -70,7 +70,8 @@ def main():
         result.vstack(df, in_place=True)
 
     print(result)
-    print(result.group_by("same").agg(pl.mean("correct")))
+    print(result.group_by("door").agg(pl.mean("correct")))
+    print(result.group_by("door", "same").agg(pl.mean("correct")).sort("door", "same"))
 
     dpath_name = args.dataset[0]
     result_out = dpath_name.replace(".txt", ".csv")
