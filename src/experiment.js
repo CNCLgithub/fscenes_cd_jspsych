@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
- * @description path-block-2024-03-14 upright +stairs
- * @version 11.0
+ * @description path-block-2024-08-13 750ms
+ * @version 14.1
  *
  * @assets assets/
  */
@@ -37,7 +37,7 @@ const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 16;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 250; // ms
+const STIM_IMAGE_DUR = 750; // ms
 const STIM_MASK_DUR = 1000; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
@@ -231,7 +231,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
 
   //        example
-  const exampleTrial = genTrial(jsPsych, "example_a.png", "example_b.png", false);
+  const exampleTrial = genTrial(jsPsych, "example.png", "example.png", false);
 
   // comprehension check
   const comp_check = {
