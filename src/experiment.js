@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
- * @description path-block-2024-08-13 750ms
- * @version 14.1
+ * @description path_block_maze/2024-08-14_rBhPm2 1250ms
+ * @version 16.4
  *
  * @assets assets/
  */
@@ -37,7 +37,7 @@ const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 16;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 750; // ms
+const STIM_IMAGE_DUR = 1250; // ms
 const STIM_MASK_DUR = 1000; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
