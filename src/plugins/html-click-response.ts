@@ -1,13 +1,20 @@
 import { JsPsych, JsPsychPlugin, ParameterType, TrialType } from "jspsych";
 
-
 const info = <const>{
-    name: "html-keyboard-response",
+    name: "html-click-response",
     parameters: {
         /**
          * The string to be displayed.
          */
-        stimulus: {
+        first_stim: {
+            type: ParameterType.HTML_STRING,
+            default: undefined,
+        },
+        mask: {
+            type: ParameterType.HTML_STRING,
+            default: undefined,
+        },
+        second_stim: {
             type: ParameterType.HTML_STRING,
             default: undefined,
         },
@@ -41,7 +48,7 @@ const info = <const>{
          */
         stimulus_duration: {
             type: ParameterType.INT,
-            default: null,
+            default: 1000,
         },
         /**
          * How long to wait for the participant to make a response before ending the trial in milliseconds.
@@ -65,17 +72,17 @@ const info = <const>{
         },
     },
     data: {
-        /** Indicates which key the participant pressed. */
-        response: {
-            type: ParameterType.STRING,
+        /** X coordinate of click. */
+        clickX: {
+            type: ParameterType.FLOAT,
+        },
+        /** Y coordinate of click. */
+        clickY: {
+            type: ParameterType.FLOAT,
         },
         /** The response time in milliseconds for the participant to make a response. The time is measured from when the stimulus first appears on the screen until the participant's response. */
         rt: {
             type: ParameterType.INT,
-        },
-        /** The HTML content that was displayed on the screen. */
-        stimulus: {
-            type: ParameterType.STRING,
         },
     },
 };
@@ -95,7 +102,12 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
     constructor(private jsPsych: JsPsych) {}
 
     trial(display_element: HTMLElement, trial: TrialType<Info>) {
-        var new_html = '<div id="jspsych-html-keyboard-response-stimulus">' + trial.stimulus + "</div>";
+        var new_html =
+            '<div id="jspsych-html-click-response-stimulus">' +
+            trial.first_stim +
+            trial.second_stim +
+            trial.mask +
+            "</div>";
 
         // add prompt
         if (trial.prompt !== null) {
@@ -104,44 +116,75 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
 
         // draw
         display_element.innerHTML = new_html;
+        var start_time = Date.now();
 
         // store response
         var response = {
             rt: null,
-            clickX : null,
-            clickY : null,
+            clickX: null,
+            clickY: null,
         };
+
+        var step = 0;
+        var cycle_stimuli = () => {
+            const first = display_element.querySelector<HTMLElement>("#first");
+            const second =
+                display_element.querySelector<HTMLElement>("#second");
+            const mask = display_element.querySelector<HTMLElement>("#mask");
+            first.style.display = "none";
+            second.style.display = "none";
+            mask.style.display = "none";
+            if (step == 0) {
+                first.style.display = "block";
+            } else if (step == 2) {
+                second.style.display = "block";
+            } else {
+                mask.style.display = "block";
+            }
+            step = (step + 1) % 4;
+        };
+        var interval = setInterval(cycle_stimuli, trial.stimulus_duration);
 
         // function to end trial when it is time
         const end_trial = () => {
+            clearInterval(interval);
+            let elem = display_element.querySelector<HTMLElement>(
+                "#jspsych-html-click-response-stimulus",
+            );
             // kill click listeners
-            if (typeof clickListener !== "undefined") {
-                display_element.querySelector<HTMLElement>(
-                    "#jspsych-html-click-response-stimulus"
-                ).removeEventListener("click", clickListener);
+            if (elem != null) {
+                elem.removeEventListener("click", after_response);
             }
 
             // gather the data to store for the trial
             var trial_data = {
                 rt: response.rt,
-                stimulus: trial.stimulus,
-                response: response.key,
+                clickX: response.clickX,
+                clickY: response.clickY,
             };
+            console.log(trial_data);
 
             // move on to the next trial
             this.jsPsych.finishTrial(trial_data);
         };
 
         // function to handle responses by the subject
-        var after_response = (info) => {
+        var after_response = (e: MouseEvent) => {
             // after a valid response, the stimulus will have the CSS class 'responded'
             // which can be used to provide visual feedback that a response was recorded
-            display_element.querySelector("#jspsych-html-click-response-stimulus").className +=
-            " responded";
+            display_element.querySelector(
+                "#jspsych-html-click-response-stimulus",
+            ).className += " responded";
+
+            const bbox = e.target?.getBoundingClientRect();
 
             // only record the first response
             if (response.rt == null) {
-                response = info;
+                response = {
+                    rt: Date.now() - start_time,
+                    clickX: e.clientX - bbox?.left,
+                    clickY: e.clientY - bbox?.top,
+                };
             }
 
             if (trial.response_ends_trial) {
@@ -150,13 +193,9 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
         };
 
         // start the response listener
-        var on_click = (e) => {
-            console.log("detected click");
-            console.log(e);
-        };
-        var clickListener = display_element.querySelector<HTMLElement>(
-            "#" + trial.target
-        ).addEventListener("click", on_click);
+        display_element
+            .querySelector("#" + trial.target)
+            .addEventListener("click", after_response);
         // var keyboardListener = this.jsPsych.pluginAPI.getKeyboardResponse({
         //     callback_function: after_response,
         //     valid_responses: trial.choices,
@@ -164,27 +203,13 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
         //     persist: false,
         //     allow_held_key: false,
         // });
-
-        // hide stimulus if stimulus_duration is set
-        if (trial.stimulus_duration !== null) {
-            this.jsPsych.pluginAPI.setTimeout(() => {
-                display_element.querySelector<HTMLElement>(
-                    "#jspsych-html-click-response-stimulus"
-                ).style.visibility = "hidden";
-            }, trial.stimulus_duration);
-        }
-
-        // end trial if trial_duration is set
-        if (trial.trial_duration !== null) {
-            this.jsPsych.pluginAPI.setTimeout(end_trial, trial.trial_duration);
-        }
     }
 
     simulate(
         trial: TrialType<Info>,
         simulation_mode,
         simulation_options: any,
-        load_callback: () => void
+        load_callback: () => void,
     ) {
         if (simulation_mode == "data-only") {
             load_callback();
@@ -197,12 +222,20 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
 
     private create_simulation_data(trial: TrialType<Info>, simulation_options) {
         const default_data = {
-            stimulus: trial.stimulus,
-            rt: this.jsPsych.randomization.sampleExGaussian(500, 50, 1 / 150, true),
-            response: this.jsPsych.pluginAPI.getValidKey(trial.choices),
+            rt: this.jsPsych.randomization.sampleExGaussian(
+                500,
+                50,
+                1 / 150,
+                true,
+            ),
+            clickX: 100 * (Math.random() - 0.5),
+            clickY: 100 * (Math.random() - 0.5),
         };
 
-        const data = this.jsPsych.pluginAPI.mergeSimulationData(default_data, simulation_options);
+        const data = this.jsPsych.pluginAPI.mergeSimulationData(
+            default_data,
+            simulation_options,
+        );
 
         this.jsPsych.pluginAPI.ensureSimulationDataConsistency(trial, data);
 
@@ -215,7 +248,11 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
         this.jsPsych.finishTrial(data);
     }
 
-    private simulate_visual(trial: TrialType<Info>, simulation_options, load_callback: () => void) {
+    private simulate_visual(
+        trial: TrialType<Info>,
+        simulation_options,
+        load_callback: () => void,
+    ) {
         const data = this.create_simulation_data(trial, simulation_options);
 
         const display_element = this.jsPsych.getDisplayElement();
@@ -224,7 +261,10 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
         load_callback();
 
         if (data.rt !== null) {
-            this.jsPsych.pluginAPI.pressKey(data.response, data.rt);
+            const target = document.querySelector(
+                "#jspsych-html-click-response-stimulus",
+            );
+            this.jsPsych.pluginAPI.clickTarget(target, data.rt);
         }
     }
 }
