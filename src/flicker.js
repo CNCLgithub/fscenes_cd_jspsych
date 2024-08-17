@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
- * @description path_block_maze/2024-08-14_rBhPm2 play
- * @version play_0.1
+ * @description flicker path_block_maze/2024-08-14_rBhPm2
+ * @version flicker-0.1
  *
  * @assets assets/
  */
@@ -27,7 +27,7 @@ const PROLIFIC_URL = 'https://app.prolific.com/submissions/complete?cc=782B6DAB'
 
 // trial list
 import trial_list_wrapped from '../assets/condlist.json';
-const trial_list = trial_list_wrapped[0];
+const trial_list = trial_list_wrapped[0].slice(12,23);
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
@@ -35,17 +35,17 @@ const N_MASKS = 5;
 var EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
-const STIM_DEG = 12;
+const STIM_DEG = 13;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 500; // ms
-const STIM_MASK_DUR = 500; // ms
+const STIM_IMAGE_DUR = 250; // ms
+const STIM_MASK_DUR = 250; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
 
 
 // Debug Variables
-const SKIP_PROLIFIC_ID = false;
-const SKIP_INSTRUCTIONS = false;
+const SKIP_PROLIFIC_ID = true;
+const SKIP_INSTRUCTIONS = true;
 
 var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
@@ -64,6 +64,60 @@ var sampleRandomMask = function (jsPsych) {
   return mask_file;
 };
 
+var condNode = function (jsPsych, tl) {
+  const if_node = {
+    timeline: [tl],
+    conditional_function: function(){
+      // get the data from the previous trial,
+      // and check which key was pressed
+      const data = jsPsych.data.get().last(1).values()[0];
+      return !(jsPsych.pluginAPI.compareKeys(data.response, 'j'));
+    }
+  }
+  return if_node
+};
+
+var genLoop = function (jsPsych, a, b, c, d) {
+
+  const loop_node = {
+    timeline: [a, condNode(jsPsych, b), condNode(jsPsych, c), condNode(jsPsych, d)],
+    loop_function: function(data) {
+      let stop_looping = false;
+      for (const part of data.values()) {
+        // stop_looping = jsPsych.pluginAPI.compareKeys(part.response, 'j');
+        console.log(part.clicked);
+        stop_looping = part.clicked;
+        if (stop_looping) {
+          return false;
+        }
+      }
+      return true;
+    }
+  };
+  return loop_node;
+};
+
+var genPart = function (jsPsych, content, dur) {
+  let clicked = false;
+  const part = {
+    type: HtmlKeyboardResponsePlugin,
+    stimulus: content,
+    choices: "NO_KEYS",
+    trial_duration: dur,
+    response_ends_trial: false,
+    clicked : false,
+    data : () => {return {clicked: clicked}},
+    on_load : () => {
+      document.getElementById("jspsych-html-keyboard-response-stimulus").addEventListener('click', (e) => {
+        console.log("detected click");
+        console.log(e);
+        clicked = true;
+      });
+    }
+  }
+  return part;
+};
+
 /*  helper to generate timeline parts for a trial */
 var genTrial = function (jsPsych, img_a, img_b, flipx) {
 
@@ -71,54 +125,16 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     [img_a, img_b] = [img_b, img_a]
   }
 
-  const img_1 = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_IMAGE_DUR,
-  };
-  const mask_img = sampleRandomMask(jsPsych);
-  const mask = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(mask_img, false)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_MASK_DUR,
+  const blank = genPart(jsPsych, `<div class="centered"> </div>`, 1000);
+  const img_1 = genPart(jsPsych, `<div class="centered"> ${genImgHtml(img_a, flipx)} </div>`, STIM_IMAGE_DUR);
+  const mask = genPart(jsPsych, `<div class="centered"> ${genImgHtml("grey_mask.png", false)} </div>`, STIM_MASK_DUR);
+  const img_2 = genPart(jsPsych, `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`, STIM_IMAGE_DUR);
 
-  };
-  const img_2 = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(img_b, flipx)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_IMAGE_DUR,
-  };
-  const response = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: '',
-    choices: ['f', 'j'],
-    prompt: `<p>Press 'f' if the images are the <b>DIFFERENT</b>.</p> <p>Press 'j' if the images are the <b>SAME</b>.</p>`,
-    post_trial_gap: 1000, // 1000ms gap
-
+  const trial = {
+    timeline: [blank, genLoop(jsPsych, img_1, mask, img_2, mask)],
   };
 
-  const mask_2_img = sampleRandomMask(jsPsych);
-  const mask_2 = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(mask_2_img, false)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_MASK_DUR,
-
-  };
-
-  const tl = {
-    timeline: [img_1, mask, img_2, mask_2, response],
-    data: {
-      a: img_a.slice(0, -4),
-      b: img_b.slice(0, -4),
-      mask: mask_img,
-      mask_2: mask_2_img
-    }
-  };
-  return (tl);
+  return trial;
 };
 
 /**
@@ -195,12 +211,12 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }
   });
 
-  timeline.push({
-    type: VirtualChinrestPlugin,
-    blindspot_reps: 3,
-    resize_units: "deg",
-    pixels_per_unit: PIXELS_PER_UNIT
-  });
+  // timeline.push({
+  //   type: VirtualChinrestPlugin,
+  //   blindspot_reps: 3,
+  //   resize_units: "deg",
+  //   pixels_per_unit: PIXELS_PER_UNIT
+  // });
 
 
   const instructions = {
