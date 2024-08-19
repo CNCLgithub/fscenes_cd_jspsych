@@ -168,26 +168,71 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
             this.jsPsych.finishTrial(trial_data);
         };
 
+        // Helper function to get an element's exact position
+        const getPosition = (el: HTMLElement) => {
+            let xPos = 0;
+            let yPos = 0;
+
+            while (el) {
+                if (el.tagName == "BODY") {
+                    // deal with browser quirks with body/window/document and page scroll
+                    var xScroll =
+                        el.scrollLeft || document.documentElement.scrollLeft;
+                    var yScroll =
+                        el.scrollTop || document.documentElement.scrollTop;
+
+                    xPos += el.offsetLeft - xScroll + el.clientLeft;
+                    yPos += el.offsetTop - yScroll + el.clientTop;
+                } else {
+                    // for all other non-BODY elements
+                    xPos += el.offsetLeft - el.scrollLeft + el.clientLeft;
+                    yPos += el.offsetTop - el.scrollTop + el.clientTop;
+                }
+
+                el = el.offsetParent;
+            }
+            return {
+                x: xPos,
+                y: yPos,
+            };
+        };
+
+        // from https://www.kirupa.com/snippets/move_element_to_click_position.htm
+        const getClickPosition = (e: MouseEvent) => {
+            const parentPosition = getPosition(e.target);
+            console.log(parentPosition);
+            const xPosition = e.clientX - parentPosition.x;
+            const yPosition = e.clientY - parentPosition.y;
+            return { x: xPosition, y: yPosition };
+        };
+
         // function to handle responses by the subject
         var after_response = (e: MouseEvent) => {
             // after a valid response, the stimulus will have the CSS class 'responded'
             // which can be used to provide visual feedback that a response was recorded
-            display_element.querySelector(
-                "#jspsych-html-click-response-stimulus",
-            ).className += " responded";
+            // display_element.querySelector(
+            //     "#jspsych-html-click-response-stimulus",
+            // ).className += " responded";
+            const rt = Date.now() - start_time;
+            // Check if each stim was shown at least once
+            if (rt > 3 * trial.stimulus_duration) {
+                // const pos = getClickPosition(e);
+                const bbox = e.target.getBoundingClientRect();
 
-            const bbox = e.target?.getBoundingClientRect();
-
-            // only record the first response
-            if (response.rt == null) {
-                response = {
-                    rt: Date.now() - start_time,
-                    clickX: e.clientX - bbox?.left,
-                    clickY: e.clientY - bbox?.top,
-                };
-            }
-
-            if (trial.response_ends_trial) {
+                console.log(bbox);
+                console.log(e.clientX);
+                // console.log(e.offsetX);
+                // console.log(e.clientX - bbox.x);
+                // only record the first response
+                if (response.rt == null) {
+                    response = {
+                        rt: rt,
+                        // clickX: pos.x,
+                        // clickY: pos.y,
+                        clickX: (e.clientX - bbox.left) / bbox.width,
+                        clickY: (e.clientY - bbox.top) / bbox.height,
+                    };
+                }
                 end_trial();
             }
         };
@@ -196,13 +241,6 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
         display_element
             .querySelector("#" + trial.target)
             .addEventListener("click", after_response);
-        // var keyboardListener = this.jsPsych.pluginAPI.getKeyboardResponse({
-        //     callback_function: after_response,
-        //     valid_responses: trial.choices,
-        //     rt_method: "performance",
-        //     persist: false,
-        //     allow_held_key: false,
-        // });
     }
 
     simulate(

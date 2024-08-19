@@ -1,7 +1,7 @@
 /**
- * @title Change Detection
- * @description flicker path_block_maze/2024-08-14_rBhPm2
- * @version flicker-0.1
+ * @title Flicker Change Detection
+ * @description path_block_maze/2024-08-14_rBhPm2
+ * @version 0.1
  *
  * @assets assets/
  */
@@ -19,7 +19,6 @@ import InstructionsPlugin from "@jspsych/plugin-instructions";
 import SurveyMultiChoicePlugin from "@jspsych/plugin-survey-multi-choice";
 import HtmlButtonResponsePlugin from "@jspsych/plugin-html-button-response";
 import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
-import ImageKeyboardResponsePlugin from "@jspsych/plugin-image-keyboard-response";
 import HtmlClickResponsePlugin from "./plugins/html-click-response.ts";
 import { initJsPsych } from "jspsych";
 
@@ -29,7 +28,7 @@ const PROLIFIC_URL =
 
 // trial list
 import trial_list_wrapped from "../assets/condlist.json";
-const trial_list = trial_list_wrapped[0].slice(12, 23);
+const trial_list = trial_list_wrapped[0];
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
@@ -39,14 +38,16 @@ const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 13;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 500; // ms
-const BTWN_TRIAL_DUR = 500; // ms
+const STIM_IMAGE_DUR = 250; // ms
+const BTWN_TRIAL_DUR = 1000; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = true;
 const SKIP_INSTRUCTIONS = true;
+const SKIP_CHINREST = true;
+const SKIP_CONSENT = true;
 
 var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
@@ -66,13 +67,13 @@ var sampleRandomMask = function (jsPsych) {
 };
 
 /*  helper to generate timeline parts for a trial */
-var genTrial = function (jsPsych, img_a, img_b, flipx) {
+var genTrial = function (img_a, img_b, flipx) {
   if (REVERSE_ORDER) {
     [img_a, img_b] = [img_b, img_a];
   }
   const blank = {
     type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> </div>`,
+    stimulus: `<div class="centered" style="font-size:80px">+</div>`,
     trial_duration: BTWN_TRIAL_DUR,
   };
   const click = {
@@ -81,9 +82,17 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     second_stim: `<div id="second" class="centered" style="display:none;"> ${genImgHtml(img_b, flipx)} </div>`,
     mask: `<div id="mask" class="centered" style="display:none;"> ${genImgHtml("grey_mask.png", false)} </div>`,
     stimulus_duration: STIM_IMAGE_DUR,
+    data: { response_trial: true, first_stim: img_a, second_stim: img_b },
+  };
+  const next = {
+    type: HtmlButtonResponsePlugin,
+    stimulus: '<div class="centered">Press next to continue</div>',
+    choices: ["Next"],
+    button_html:
+      '<button class="jspsych-btn" style="transform:translate(0, 120px)">%choice%</button>',
   };
   const trial = {
-    timeline: [blank, click],
+    timeline: [blank, click, next],
   };
   return trial;
 };
@@ -107,25 +116,72 @@ export async function run({
         // in jatos environment
         jatos.endStudyAndRedirect(PROLIFIC_URL, jsPsych.data.get().json());
       } else {
+        jsPsych.data.displayData("json");
         return jsPsych;
+      }
+    },
+    on_interaction_data_update: function (data) {
+      if (data.event == "fullscreenexit" && should_be_in_fullscreen) {
+        console.log("exited fullscreen");
+        // hide the contents of the current trial
+        jsPsych.getDisplayElement().style.visibility = "hidden";
+        // add a div that contains a message and button to re-enter fullscreen
+        jsPsych
+          .getDisplayElement()
+          .insertAdjacentHTML(
+            "beforebegin",
+            '<div id="message-div" style="margin: auto; width: 100%; text-align: center;">' +
+              "<p>Please remain in fullscreen mode during the task.</p>" +
+              "<p>When you click the button below, you will enter fullscreen mode.</p>" +
+              '<button id="jspsych-fullscreen-btn" class="jspsych-btn">Continue</button></div>',
+          );
+        // call the request fullscreen function when the button is clicked
+        document
+          .querySelector("#jspsych-fullscreen-btn")
+          .addEventListener("click", function () {
+            var element = document.documentElement;
+            if (element.requestFullscreen) {
+              element.requestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+              element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullscreen) {
+              element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+              element.msRequestFullscreen();
+            }
+          });
+      }
+      if (data.event == "fullscreenenter") {
+        console.log("entered fullscreen");
+        // when entering fullscreen, check to see if the participant is re-entering fullscreen,
+        // i.e. the 'please enter fullscreen' message is on the page
+        var msg_div = document.querySelector("#message-div");
+        if (msg_div !== null) {
+          // remove the message
+          msg_div.remove();
+          // show the contents of the current trial again
+          jsPsych.getDisplayElement().style.visibility = "visible";
+        }
       }
     },
   });
 
   const timeline = [];
 
-  // timeline.push({
-  //   type: ExternalHtmlPlugin,
-  //   url: assetPaths.misc[1],
-  //   cont_btn: "start",
-  //   check_fn: function () {
-  //     if (document.getElementById("consent_checkbox").checked) {
-  //       return true;
-  //     } else {
-  //       alert("You must tick the checkbox to continue with the study.");
-  //     }
-  //   },
-  // });
+  if (!SKIP_CONSENT) {
+    timeline.push({
+      type: ExternalHtmlPlugin,
+      url: assetPaths.misc[1],
+      cont_btn: "start",
+      check_fn: function () {
+        if (document.getElementById("consent_checkbox").checked) {
+          return true;
+        } else {
+          alert("You must tick the checkbox to continue with the study.");
+        }
+      },
+    });
+  }
 
   if (!SKIP_PROLIFIC_ID) {
     timeline.push({
@@ -147,9 +203,13 @@ export async function run({
     images: assetPaths.images,
   });
 
+  var should_be_in_fullscreen = false;
   timeline.push({
     type: FullscreenPlugin,
     fullscreen_mode: true,
+    on_start: () => {
+      should_be_in_fullscreen = true; // once this trial starts, the participant should be in fullscreen
+    },
   });
 
   timeline.push({
@@ -170,12 +230,14 @@ export async function run({
     },
   });
 
-  // timeline.push({
-  //   type: VirtualChinrestPlugin,
-  //   blindspot_reps: 3,
-  //   resize_units: "deg",
-  //   pixels_per_unit: PIXELS_PER_UNIT
-  // });
+  if (!SKIP_CHINREST) {
+    timeline.push({
+      type: VirtualChinrestPlugin,
+      blindspot_reps: 3,
+      resize_units: "deg",
+      pixels_per_unit: PIXELS_PER_UNIT,
+    });
+  }
 
   const instructions = {
     type: InstructionsPlugin,
@@ -188,9 +250,8 @@ export async function run({
         `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` +
         `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` +
         `Click <b>Next</b> to continue.`,
-      `In this study, two images (like the one below) will briefly appear one after the other.<br>` +
-        `You will be asked to determine whether the two images are the same. <br>` +
-        `After the second image dissapears, <br> press <b>"j"</b> if the images are the <b>SAME</b> <br> otherwise press <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
+      `In this study, two images (like the one below) will briefly appear one after the other. These images will change in one spot.<br>` +
+        `Your task is to determine where the change occurs by clicking on that spot with your mouse. <br> <br>` +
         genImgHtml("1_1.png", false) +
         `<br> Click <b>Next</b> to continue.`,
       `<strong>The next screen will be a demonstration trial.</strong> <br>` +
@@ -204,7 +265,7 @@ export async function run({
   };
 
   //        example
-  const exampleTrial = genTrial(jsPsych, "example.png", "example.png", false);
+  const exampleTrial = genTrial("example_a.png", "example_b.png", false);
 
   // comprehension check
   const comp_check = {
@@ -213,24 +274,24 @@ export async function run({
     questions: [
       {
         prompt:
-          "Which key should you respond with if the two images are the same?",
+          "True or False: The two images will change in more than one spot.",
         name: "check1",
-        options: ["f", "j", "s"],
+        options: ["True", "False"],
         required: true,
       },
       {
-        prompt: "True or False: The two images will always be different",
+        prompt: "True or False: The two images will always be different.",
         name: "check2",
-        options: ["true", "false"],
+        options: ["True", "False"],
         required: true,
       },
     ],
     randomize_question_order: false,
     on_finish: function (data) {
-      var q1 = data.response.check1;
-      var q2 = data.response.check2;
+      const q1 = data.response.check1;
+      const q2 = data.response.check2;
       // set to true if both comp checks are passed
-      data.correct = q1 == "j" && q2 == "false";
+      data.correct = q1 == "False" && q2 == "True";
     },
     data: {
       // add any additional data that needs to be recorded here
@@ -283,8 +344,16 @@ export async function run({
   // add exp trials with random shuffle, unique per session
   for (const trial of jsPsych.randomization.shuffle(trial_list)) {
     const [img_a, img_b, flipX] = trial;
-    timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
+    timeline.push(genTrial(img_a, img_b, flipX));
   }
+
+  timeline.push({
+    type: FullscreenPlugin,
+    fullscreen_mode: false,
+    on_start: function () {
+      should_be_in_fullscreen = false; // once this trial starts, the participant is no longer required to stay in fullscreen
+    },
+  });
 
   timeline.push({
     type: SurveyTextPlugin,
