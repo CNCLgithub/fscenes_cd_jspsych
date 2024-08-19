@@ -131,15 +131,15 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
             const second =
                 display_element.querySelector<HTMLElement>("#second");
             const mask = display_element.querySelector<HTMLElement>("#mask");
-            first.style.display = "none";
-            second.style.display = "none";
-            mask.style.display = "none";
+            first.style.visibility = "hidden";
+            second.style.visibility = "hidden";
+            mask.style.visibility = "hidden";
             if (step == 0) {
-                first.style.display = "block";
+                first.style.visibility = "visible";
             } else if (step == 2) {
-                second.style.display = "block";
+                second.style.visibility = "visible";
             } else {
-                mask.style.display = "block";
+                mask.style.visibility = "visible";
             }
             step = (step + 1) % 4;
         };
@@ -148,13 +148,11 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
         // function to end trial when it is time
         const end_trial = () => {
             clearInterval(interval);
-            let elem = display_element.querySelector<HTMLElement>(
-                "#jspsych-html-click-response-stimulus",
-            );
-            // kill click listeners
-            if (elem != null) {
-                elem.removeEventListener("click", after_response);
-            }
+            display_element
+                .querySelector<HTMLElement>(
+                    "#jspsych-html-click-response-stimulus",
+                )
+                .removeEventListener("click", after_response);
 
             // gather the data to store for the trial
             var trial_data = {
@@ -168,44 +166,6 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
             this.jsPsych.finishTrial(trial_data);
         };
 
-        // Helper function to get an element's exact position
-        const getPosition = (el: HTMLElement) => {
-            let xPos = 0;
-            let yPos = 0;
-
-            while (el) {
-                if (el.tagName == "BODY") {
-                    // deal with browser quirks with body/window/document and page scroll
-                    var xScroll =
-                        el.scrollLeft || document.documentElement.scrollLeft;
-                    var yScroll =
-                        el.scrollTop || document.documentElement.scrollTop;
-
-                    xPos += el.offsetLeft - xScroll + el.clientLeft;
-                    yPos += el.offsetTop - yScroll + el.clientTop;
-                } else {
-                    // for all other non-BODY elements
-                    xPos += el.offsetLeft - el.scrollLeft + el.clientLeft;
-                    yPos += el.offsetTop - el.scrollTop + el.clientTop;
-                }
-
-                el = el.offsetParent;
-            }
-            return {
-                x: xPos,
-                y: yPos,
-            };
-        };
-
-        // from https://www.kirupa.com/snippets/move_element_to_click_position.htm
-        const getClickPosition = (e: MouseEvent) => {
-            const parentPosition = getPosition(e.target);
-            console.log(parentPosition);
-            const xPosition = e.clientX - parentPosition.x;
-            const yPosition = e.clientY - parentPosition.y;
-            return { x: xPosition, y: yPosition };
-        };
-
         // function to handle responses by the subject
         var after_response = (e: MouseEvent) => {
             // after a valid response, the stimulus will have the CSS class 'responded'
@@ -216,19 +176,16 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
             const rt = Date.now() - start_time;
             // Check if each stim was shown at least once
             if (rt > 3 * trial.stimulus_duration) {
-                // const pos = getClickPosition(e);
-                const bbox = e.target.getBoundingClientRect();
+                // bbox of image since the parent div has moments
+                // where it's not defined
+                const bbox = display_element
+                    .querySelector("#first")
+                    ?.getBoundingClientRect();
 
-                console.log(bbox);
-                console.log(e.clientX);
-                // console.log(e.offsetX);
-                // console.log(e.clientX - bbox.x);
                 // only record the first response
                 if (response.rt == null) {
                     response = {
                         rt: rt,
-                        // clickX: pos.x,
-                        // clickY: pos.y,
                         clickX: (e.clientX - bbox.left) / bbox.width,
                         clickY: (e.clientY - bbox.top) / bbox.height,
                     };
@@ -239,7 +196,7 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
 
         // start the response listener
         display_element
-            .querySelector("#" + trial.target)
+            .querySelector("#jspsych-html-click-response-stimulus")
             .addEventListener("click", after_response);
     }
 

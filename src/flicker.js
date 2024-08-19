@@ -44,10 +44,10 @@ const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
 
 // Debug Variables
-const SKIP_PROLIFIC_ID = true;
-const SKIP_INSTRUCTIONS = true;
-const SKIP_CHINREST = true;
-const SKIP_CONSENT = true;
+const SKIP_PROLIFIC_ID = false;
+const SKIP_INSTRUCTIONS = false;
+const SKIP_CHINREST = false;
+const SKIP_CONSENT = false;
 
 var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
@@ -78,9 +78,9 @@ var genTrial = function (img_a, img_b, flipx) {
   };
   const click = {
     type: HtmlClickResponsePlugin,
-    first_stim: `<div id="first" class="centered" style="display:none;"> ${genImgHtml(img_a, flipx)} </div>`,
-    second_stim: `<div id="second" class="centered" style="display:none;"> ${genImgHtml(img_b, flipx)} </div>`,
-    mask: `<div id="mask" class="centered" style="display:none;"> ${genImgHtml("grey_mask.png", false)} </div>`,
+    first_stim: `<div id="first" class="centered" style="visibility:hidden;"> ${genImgHtml(img_a, flipx)} </div>`,
+    second_stim: `<div id="second" class="centered" style="visibility:hidden;"> ${genImgHtml(img_b, flipx)} </div>`,
+    mask: `<div id="mask" class="centered" style="z-index:hidden;"> ${genImgHtml("grey_mask.png", false)} </div>`,
     stimulus_duration: STIM_IMAGE_DUR,
     data: { response_trial: true, first_stim: img_a, second_stim: img_b },
   };
