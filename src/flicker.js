@@ -1,7 +1,7 @@
 /**
  * @title Flicker Change Detection
- * @description path_block_maze/2024-08-14_rBhPm2
- * @version 0.1
+ * @description path_block_maze/2024-08-14_rBhPm2 inverted
+ * @version inverted-0.1
  *
  * @assets assets/
  */
@@ -40,7 +40,7 @@ const STIM_DEG = 13;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 const STIM_IMAGE_DUR = 250; // ms
 const BTWN_TRIAL_DUR = 1000; // ms
-const STIM_IMAGE_FLIPY = false; // for inverted experiment
+const STIM_IMAGE_FLIPY = true; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
 
 // Debug Variables
