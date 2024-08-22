@@ -14,7 +14,8 @@ df_schema = {
     'click_y' : pl.Float64,
     'rt': pl.Float64,
     'order': pl.UInt16,
-    'uid': pl.UInt16
+    'uid': pl.UInt16,
+    'pid': pl.String,
 }
 
 def parse_trial_data(df, data : dict):
@@ -27,7 +28,13 @@ def parse_trial_data(df, data : dict):
     df['rt'].append(data['rt'])
     df['order'].append(data['trial_index'])
 
-def parse_subj_data(timeline: dict, unique_id: int):
+def parse_subj_data(timeline: list, unique_id: int):
+
+    pid = None
+    # get prolific id
+    for step in timeline:
+        if step.get('type', None) == 'prolific_id':
+            pid = step['response']['Q0']
 
     # look for the start of the experimental trials
     exp_start = 0
@@ -45,6 +52,7 @@ def parse_subj_data(timeline: dict, unique_id: int):
             parse_trial_data(data, step)
 
     data['uid'] = unique_id
+    data['pid'] = pid
     return pl.DataFrame(data, schema=df_schema)
 
 def main():
@@ -59,14 +67,17 @@ def main():
     raw = []
     for dfile in args.dataset:
         with open(dfile, "r") as f:
-            for subj in f:
-                raw.append(json.loads(subj))
+            for row in f:
+                raw.append(json.loads(row))
 
     result = pl.DataFrame(schema=df_schema)
     for idx, subj in enumerate(raw):
         df = parse_subj_data(subj, idx)
         result.vstack(df, in_place=True)
 
+    pl.Config.set_tbl_rows(100)
+    subjects = result.group_by('pid').agg(pl.len())
+    print(subjects.filter(pl.col('pid') == '652aad53d29f472a6dd31bb1'))
     print(result.group_by("uid", "door").agg(pl.mean("rt")).sort("uid", "door"))
     print(result.group_by("door").agg(pl.mean("rt")).sort("door"))
 
