@@ -1,7 +1,7 @@
 /**
  * @title Flicker Change Detection
- * @description path_block_maze/2024-08-14_rBhPm2 inverted
- * @version inverted-0.1
+ * @description path_block_maze/2024-08-14_rBhPm2 closed-door
+ * @version closed-0.1
  *
  * @assets assets/
  */
@@ -40,8 +40,7 @@ const STIM_DEG = 13;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 const STIM_IMAGE_DUR = 250; // ms
 const BTWN_TRIAL_DUR = 1000; // ms
-const STIM_IMAGE_FLIPY = true; // for inverted experiment
-const REVERSE_ORDER = false; // Reverse image presentation
+const STIM_IMAGE_FLIPY = false; // for inverted experiment
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = false;
@@ -68,9 +67,6 @@ var sampleRandomMask = function (jsPsych) {
 
 /*  helper to generate timeline parts for a trial */
 var genTrial = function (img_a, img_b, flipx) {
-  if (REVERSE_ORDER) {
-    [img_a, img_b] = [img_b, img_a];
-  }
   const blank = {
     type: HtmlKeyboardResponsePlugin,
     stimulus: `<div class="centered" style="font-size:80px">+</div>`,
