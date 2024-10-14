@@ -1,7 +1,7 @@
 /**
  * @title Change Detection
- * @description path_block_maze/2024-08-14_rBhPm2 1250ms
- * @version 16.4
+ * @description path_block_maze/2024-08-14_rBhPm2 play
+ * @version play_0.1
  *
  * @assets assets/
  */
@@ -35,10 +35,10 @@ const N_MASKS = 5;
 var EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
-const STIM_DEG = 16;
+const STIM_DEG = 12;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 1250; // ms
-const STIM_MASK_DUR = 1000; // ms
+const STIM_IMAGE_DUR = 500; // ms
+const STIM_MASK_DUR = 500; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const REVERSE_ORDER = false; // Reverse image presentation
 
