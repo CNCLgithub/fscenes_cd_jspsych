@@ -51,6 +51,13 @@ const info = <const>{
             default: 1000,
         },
         /**
+         * How long to display the mask in milliseconds.
+         * */
+        mask_duration: {
+            type: ParameterType.INT,
+            default: 1000,
+        },
+        /**
          * How long to wait for the participant to make a response before ending the trial in milliseconds.
          * If the participant fails to make a response before this timer is reached, the participant's response
          * will be recorded as null for the trial and the trial will end. If the value of this parameter is null,
@@ -125,29 +132,37 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
             clickY: null,
         };
 
-        var step = 0;
-        var cycle_stimuli = () => {
+        let step = 0;
+        let cycle_stimuli = () => {
             const first = display_element.querySelector<HTMLElement>("#first");
             const second =
                 display_element.querySelector<HTMLElement>("#second");
             const mask = display_element.querySelector<HTMLElement>("#mask");
+            let duration = 0;
             first.style.visibility = "hidden";
             second.style.visibility = "hidden";
             mask.style.visibility = "hidden";
-            if (step == 0) {
+            if (step == 1) {
                 first.style.visibility = "visible";
-            } else if (step == 2) {
+                duration = trial.stimulus_duration;
+            } else if (step == 3) {
                 second.style.visibility = "visible";
+                duration = trial.stimulus_duration;
             } else {
+                // steps 0,2
                 mask.style.visibility = "visible";
+                duration = trial.mask_duration;
             }
             step = (step + 1) % 4;
+            interval = setTimeout(cycle_stimuli, duration);
         };
-        var interval = setInterval(cycle_stimuli, trial.stimulus_duration);
+        // var interval = setInterval(cycle_stimuli, trial.stimulus_duration);
+
+        let interval = setTimeout(cycle_stimuli, 0);
 
         // function to end trial when it is time
         const end_trial = () => {
-            clearInterval(interval);
+            clearTimeout(interval);
             display_element
                 .querySelector<HTMLElement>(
                     "#jspsych-html-click-response-stimulus",

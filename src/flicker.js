@@ -27,8 +27,8 @@ const PROLIFIC_URL =
   "https://app.prolific.com/submissions/complete?cc=782B6DAB";
 
 // trial list
-import trial_list_wrapped from "../assets/condlist.json";
-const trial_list = trial_list_wrapped[0];
+import trial_list from "../assets/condlist.json";
+// const trial_list = trial_list_wrapped[0];
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
@@ -38,15 +38,16 @@ const STIM_IMAGE_W = 720;
 const STIM_IMAGE_H = 480;
 const STIM_DEG = 13;
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 250; // ms
-const BTWN_TRIAL_DUR = 1000; // ms
+const STIM_IMAGE_DUR = 850; // ms
+const MASK_IMAGE_DUR = 750; // ms
+const BTWN_TRIAL_DUR = 1500; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 
 // Debug Variables
-const SKIP_PROLIFIC_ID = false;
-const SKIP_INSTRUCTIONS = false;
-const SKIP_CHINREST = false;
-const SKIP_CONSENT = false;
+const SKIP_PROLIFIC_ID = true;
+const SKIP_INSTRUCTIONS = true;
+const SKIP_CHINREST = true;
+const SKIP_CONSENT = true;
 
 var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
@@ -74,10 +75,11 @@ var genTrial = function (img_a, img_b, flipx) {
   };
   const click = {
     type: HtmlClickResponsePlugin,
-    first_stim: `<div id="first" class="centered" style="visibility:hidden;"> ${genImgHtml(img_a, flipx)} </div>`,
-    second_stim: `<div id="second" class="centered" style="visibility:hidden;"> ${genImgHtml(img_b, flipx)} </div>`,
+    first_stim: `<div id="first" class="centered" style="visibility:hidden;filter:brightness(120%);"> ${genImgHtml(img_a, flipx)} </div>`,
+    second_stim: `<div id="second" class="centered" style="visibility:hidden;filter:brightness(120%);"> ${genImgHtml(img_b, flipx)} </div>`,
     mask: `<div id="mask" class="centered" style="z-index:hidden;"> ${genImgHtml("grey_mask.png", false)} </div>`,
     stimulus_duration: STIM_IMAGE_DUR,
+    mask_duration: MASK_IMAGE_DUR,
     data: { response_trial: true, first_stim: img_a, second_stim: img_b },
   };
   const next = {
