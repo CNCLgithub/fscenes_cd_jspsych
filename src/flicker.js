@@ -1,7 +1,7 @@
 /**
  * @title Flicker Change Detection
- * @description path_block_maze/2024-08-14_rBhPm2 closed-door
- * @version closed-0.1
+ * @description window-0.1/2025-01-22_BJFn5j
+ * @version window-0.1_2025-01-22_BJFn5j
  *
  * @assets assets/
  */
