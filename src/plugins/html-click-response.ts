@@ -114,7 +114,8 @@ class HtmlClickResponsePlugin implements JsPsychPlugin<Info> {
             trial.first_stim +
             trial.second_stim +
             trial.mask +
-            "</div>";
+            `<div class="centered" style="font-size:80px">+</div>`;
+        ("</div>");
 
         // add prompt
         if (trial.prompt !== null) {

@@ -61,14 +61,17 @@ def main():
         description = 'Parses JATOS data',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('dataset', type = str, nargs="+",
+    parser.add_argument('dataset', type = str,
                         help = "Which scene dataset to use")
     args = parser.parse_args()
     raw = []
-    for dfile in args.dataset:
-        with open(dfile, "r") as f:
-            for row in f:
-                raw.append(json.loads(row))
+
+    with open(args.dataset, "r") as f:
+        for (i, subj) in enumerate(f):
+            try:
+                raw.append(json.loads(subj))
+            except:
+                print(f'Could not interpret entry {i}')
 
     result = pl.DataFrame(schema=df_schema)
     for idx, subj in enumerate(raw):
@@ -77,12 +80,12 @@ def main():
 
     pl.Config.set_tbl_rows(100)
     subjects = result.group_by('pid').agg(pl.len())
-    print(subjects.filter(pl.col('pid') == '652aad53d29f472a6dd31bb1'))
+    print(result.sort("scene", "uid", "door"))
     print(result.group_by("uid", "door").agg(pl.mean("rt")).sort("uid", "door"))
     print(result.group_by("door").agg(pl.mean("rt")).sort("door"))
 
-    dpath_name = args.dataset[0]
-    result_out = dpath_name.replace(".txt", ".csv")
+    result_out = args.dataset.replace(".txt", ".csv")
+    print(result_out)
     result.write_csv(result_out)
 
 if __name__ == '__main__':

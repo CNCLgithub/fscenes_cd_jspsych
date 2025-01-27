@@ -1,7 +1,7 @@
 /**
  * @title Flicker Change Detection
  * @description window-0.1/2025-01-22_BJFn5j
- * @version window-0.1_2025-01-22_BJFn5j
+ * @version window-0.1_2025-01-22_BJFn5j_inverted_100_rmask
  *
  * @assets assets/
  */
@@ -28,26 +28,26 @@ const PROLIFIC_URL =
 
 // trial list
 import trial_list from "../assets/condlist.json";
-// const trial_list = trial_list_wrapped[0];
 
 // Define global experiment variables
-var N_TRIALS = trial_list.length;
-const N_MASKS = 5;
-var EXP_DURATION = 10; // in minutes
-const STIM_IMAGE_W = 720;
-const STIM_IMAGE_H = 480;
-const STIM_DEG = 13;
+const N_TRIALS = trial_list.length;
+const EXP_DURATION = 10; // in minutes
+const STIM_IMAGE_W = 873; // pixels
+const STIM_IMAGE_H = 491;
+const STIM_DEG = 15; // visual degrees of image width
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 850; // ms
+const STIM_IMAGE_DUR = 100; // ms
 const MASK_IMAGE_DUR = 750; // ms
 const BTWN_TRIAL_DUR = 1500; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
+const N_MASKS = 5;
+const RAND_MASK = true;
 
 // Debug Variables
-const SKIP_PROLIFIC_ID = true;
-const SKIP_INSTRUCTIONS = true;
-const SKIP_CHINREST = true;
-const SKIP_CONSENT = true;
+const SKIP_PROLIFIC_ID = false;
+const SKIP_INSTRUCTIONS = false;
+const SKIP_CHINREST = false;
+const SKIP_CONSENT = false;
 
 var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
@@ -67,17 +67,18 @@ var sampleRandomMask = function (jsPsych) {
 };
 
 /*  helper to generate timeline parts for a trial */
-var genTrial = function (img_a, img_b, flipx) {
+var genTrial = function (jsPsych, img_a, img_b, flipx) {
   const blank = {
     type: HtmlKeyboardResponsePlugin,
     stimulus: `<div class="centered" style="font-size:80px">+</div>`,
     trial_duration: BTWN_TRIAL_DUR,
   };
+  const mask = RAND_MASK ? sampleRandomMask(jsPsych) : "grey_mask.png";
   const click = {
     type: HtmlClickResponsePlugin,
     first_stim: `<div id="first" class="centered" style="visibility:hidden;filter:brightness(120%);"> ${genImgHtml(img_a, flipx)} </div>`,
     second_stim: `<div id="second" class="centered" style="visibility:hidden;filter:brightness(120%);"> ${genImgHtml(img_b, flipx)} </div>`,
-    mask: `<div id="mask" class="centered" style="z-index:hidden;"> ${genImgHtml("grey_mask.png", false)} </div>`,
+    mask: `<div id="mask" class="centered" style="z-index:hidden;"> ${genImgHtml(mask, false)} </div>`,
     stimulus_duration: STIM_IMAGE_DUR,
     mask_duration: MASK_IMAGE_DUR,
     data: { response_trial: true, first_stim: img_a, second_stim: img_b },
@@ -237,12 +238,9 @@ export async function run({
     });
   }
 
-  const instructions = {
+  const instruct_part_a = {
     type: InstructionsPlugin,
     pages: [
-      `The study is designed to be <i>challenging</i>. <br> Sometimes, you'll be certain about what you saw.<br>` +
-        `Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` +
-        `Click <b>Next</b> to continue.`,
       `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over.<br> ` +
         `But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` +
         `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` +
@@ -250,10 +248,10 @@ export async function run({
         `Click <b>Next</b> to continue.`,
       `In this study, two images (like the one below) will briefly appear one after the other. These images will change in one spot.<br>` +
         `Your task is to determine where the change occurs by clicking on that spot with your mouse. <br> <br>` +
-        genImgHtml("1_1.png", false) +
+        genImgHtml("example_a.png", false) +
         `<br> Click <b>Next</b> to continue.`,
-      `<strong>The next screen will be a demonstration trial.</strong> <br>` +
-        `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
+      `While the images are present, please be sure to look at the cross (+) at the center of the screen. <br><br>` +
+        `<strong>The next screen will be a demonstration trial.</strong> <br>` +
         `Click <b>Next</b> when you are ready to start the demonstration.`,
     ],
     show_clickable_nav: true,
@@ -263,7 +261,26 @@ export async function run({
   };
 
   //        example
-  const exampleTrial = genTrial("example_a.png", "example_b.png", false);
+  const exampleTrial = genTrial(
+    jsPsych,
+    "example_a.png",
+    "example_b.png",
+    false,
+  );
+
+  const instruct_part_b = {
+    type: InstructionsPlugin,
+    pages: [
+      `The study is designed to be <i>challenging</i>. <br> Sometimes, you will notice the change right away.<br>` +
+        `Other times, you may take a while -- and this is okay! Just give your best guess each time.<br>` +
+        `And please remember to keep looking at the cross (+) <br><br>` +
+        `Click <b>Next</b> to continue.`,
+    ],
+    show_clickable_nav: true,
+    show_page_number: true,
+    page_label: "<b>Instructions</b>",
+    allow_backward: false,
+  };
 
   // comprehension check
   const comp_check = {
@@ -308,7 +325,7 @@ export async function run({
       if (last_correct_resp) {
         return (
           `<span style='color:green'><h2>You passed the comprehension check!</h2></span> ` +
-          `<br>When you're ready, please click <b>Next</b> to begin the study. `
+          `<br>When you are ready, please click <b>Next</b> to begin the study. `
         );
       } else {
         return (
@@ -326,7 +343,13 @@ export async function run({
 
   // `comp_loop`: if answers are incorrect, `comp_check` will be repeated until answers are correct responses
   const comp_loop = {
-    timeline: [instructions, exampleTrial, comp_check, comp_feedback],
+    timeline: [
+      instruct_part_a,
+      exampleTrial,
+      instruct_part_b,
+      comp_check,
+      comp_feedback,
+    ],
     loop_function: function (data) {
       // return false if comprehension passes to break loop
       let values = data.values();
@@ -342,7 +365,7 @@ export async function run({
   // add exp trials with random shuffle, unique per session
   for (const trial of jsPsych.randomization.shuffle(trial_list)) {
     const [img_a, img_b, flipX] = trial;
-    timeline.push(genTrial(img_a, img_b, flipX));
+    timeline.push(genTrial(jsPsych, img_a, img_b, flipX));
   }
 
   timeline.push({
