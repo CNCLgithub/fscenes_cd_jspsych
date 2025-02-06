@@ -1,7 +1,7 @@
 /**
  * @title Flicker Change Detection
- * @description window-0.1/2025-01-22_BJFn5j
- * @version window-0.1_2025-01-22_BJFn5j_inverted_100_rmask
+ * @description window-0.1/2025-01-31_jDgk9G
+ * @version window-0.1_2025-01-31_jDgk9G_door_850_gmask
  *
  * @assets assets/
  */
@@ -36,12 +36,12 @@ const STIM_IMAGE_W = 873; // pixels
 const STIM_IMAGE_H = 491;
 const STIM_DEG = 15; // visual degrees of image width
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 100; // ms
+const STIM_IMAGE_DUR = 850; // ms
 const MASK_IMAGE_DUR = 750; // ms
 const BTWN_TRIAL_DUR = 1500; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const N_MASKS = 5;
-const RAND_MASK = true;
+const RAND_MASK = false;
 
 // Debug Variables
 const SKIP_PROLIFIC_ID = false;
