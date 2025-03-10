@@ -1,7 +1,7 @@
 /**
  * @title Flicker Change Detection
  * @description window-0.1/2025-02-05_vifdDO
- * @version window-0.1_2025-02-05_vifdDO_inverted_850_gmask
+ * @version window-0.1_2025-02-05_vifdDO_path_850_gmask
  *
  * @assets assets/
  */
@@ -19,7 +19,8 @@ import InstructionsPlugin from "@jspsych/plugin-instructions";
 import SurveyMultiChoicePlugin from "@jspsych/plugin-survey-multi-choice";
 import HtmlButtonResponsePlugin from "@jspsych/plugin-html-button-response";
 import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
-import HtmlClickResponsePlugin from "./plugins/html-click-response.ts";
+// import HtmlClickResponsePlugin from "./plugins/flicker-click-response.ts";
+import FlickerKeyResponsePlugin from "./plugins/flicker-key-response.ts";
 import { initJsPsych } from "jspsych";
 
 // Prolific variables
@@ -36,18 +37,18 @@ const STIM_IMAGE_W = 873; // pixels
 const STIM_IMAGE_H = 491;
 const STIM_DEG = 15; // visual degrees of image width
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 850; // ms
-const MASK_IMAGE_DUR = 750; // ms
+const STIM_IMAGE_DUR = 500; // ms
+const MASK_IMAGE_DUR = 1500; // ms
 const BTWN_TRIAL_DUR = 1500; // ms
-const STIM_IMAGE_FLIPY = true; // for inverted experiment
+const STIM_IMAGE_FLIPY = false; // for inverted experiment
 const N_MASKS = 5;
 const RAND_MASK = false;
 
 // Debug Variables
-const SKIP_PROLIFIC_ID = false;
-const SKIP_INSTRUCTIONS = false;
-const SKIP_CHINREST = false;
-const SKIP_CONSENT = false;
+const SKIP_PROLIFIC_ID = true;
+const SKIP_INSTRUCTIONS = true;
+const SKIP_CHINREST = true;
+const SKIP_CONSENT = true;
 
 var genImgHtml = function (img, flipx) {
   const sx = flipx ? -1 : 1;
@@ -74,8 +75,8 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     trial_duration: BTWN_TRIAL_DUR,
   };
   const mask = RAND_MASK ? sampleRandomMask(jsPsych) : "grey_mask.png";
-  const click = {
-    type: HtmlClickResponsePlugin,
+  const task = {
+    type: FlickerKeyResponsePlugin,
     first_stim: `<div id="first" class="centered" style="visibility:hidden;filter:brightness(120%);"> ${genImgHtml(img_a, flipx)} </div>`,
     second_stim: `<div id="second" class="centered" style="visibility:hidden;filter:brightness(120%);"> ${genImgHtml(img_b, flipx)} </div>`,
     mask: `<div id="mask" class="centered" style="z-index:hidden;"> ${genImgHtml(mask, false)} </div>`,
@@ -83,15 +84,15 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     mask_duration: MASK_IMAGE_DUR,
     data: { response_trial: true, first_stim: img_a, second_stim: img_b },
   };
-  const next = {
-    type: HtmlButtonResponsePlugin,
-    stimulus: '<div class="centered">Press next to continue</div>',
-    choices: ["Next"],
-    button_html:
-      '<button class="jspsych-btn" style="transform:translate(0, 120px)">%choice%</button>',
-  };
+  // const next = {
+  //   type: HtmlButtonResponsePlugin,
+  //   stimulus: '<div class="centered">Press next to continue</div>',
+  //   choices: ["Next"],
+  //   button_html:
+  //     '<button class="jspsych-btn" style="transform:translate(0, 120px)">%choice%</button>',
+  // };
   const trial = {
-    timeline: [blank, click, next],
+    timeline: [blank, task],
   };
   return trial;
 };
@@ -246,8 +247,8 @@ export async function run({
         `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` +
         `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` +
         `Click <b>Next</b> to continue.`,
-      `In this study, two images (like the one below) will briefly appear one after the other. These images will change in one spot.<br>` +
-        `Your task is to determine where the change occurs by clicking on that spot with your mouse. <br> <br>` +
+      `In this study, two images of indoor rooms (like the one below) will briefly appear one after the other. These rooms will change in one spot.<br>` +
+        `Your task is to determine whether the change changes the path to the door by pressing the <b>J</b> key for <u>yes</u> and <b>F</b> key for <u>no</u>. <br> <br>` +
         genImgHtml("example_a.png", false) +
         `<br> Click <b>Next</b> to continue.`,
       `While the images are present, please be sure to look at the cross (+) at the center of the screen. <br><br>` +

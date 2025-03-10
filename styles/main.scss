@@ -16,6 +16,19 @@
   transform: translate(-50%, -50%);
 }
 
+
+.flicker-prompt {
+  position: absolute;
+  top: 85%;
+  left: 50%;
+  // width: max-content;
+  -webkit-transform: translate(-50%, -50%);
+  -moz-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  -o-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
 /* consent.html - the consent form */
 #consent {
   margin: 0 auto;
