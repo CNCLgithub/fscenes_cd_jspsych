@@ -1,8 +1,7 @@
 /**
  * @title Change Detection
- * @description path_block_maze/2024-08-14_rBhPm2 play
- * @version play_0.1
- *
+ * @description window-0.1/2025-02-05_vifdDO
+ * @version window-0.1_2025-02-05_vifdDO_path_850_gmask
  * @assets assets/
  */
 
@@ -26,24 +25,26 @@ import { initJsPsych } from "jspsych";
 const PROLIFIC_URL = 'https://app.prolific.com/submissions/complete?cc=782B6DAB';
 
 // trial list
-import trial_list_wrapped from '../assets/condlist.json';
-const trial_list = trial_list_wrapped[0];
+import trial_list from '../assets/condlist.json';
 
 // Define global experiment variables
 var N_TRIALS = trial_list.length;
-const N_MASKS = 5;
-var EXP_DURATION = 10; // in minutes
-const STIM_IMAGE_W = 720;
-const STIM_IMAGE_H = 480;
-const STIM_DEG = 12;
+const EXP_DURATION = 10; // in minutes
+const STIM_IMAGE_W = 873; // pixels
+const STIM_IMAGE_H = 491;
+const STIM_DEG = 15; // visual degrees of image width
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
-const STIM_IMAGE_DUR = 500; // ms
-const STIM_MASK_DUR = 500; // ms
+const STIM_IMAGE_DUR = 850; // ms
+const MASK_IMAGE_DUR = 1500; // ms
+const BTWN_TRIAL_DUR = 1500; // ms
 const STIM_IMAGE_FLIPY = false; // for inverted experiment
-const REVERSE_ORDER = false; // Reverse image presentation
-
+const N_MASKS = 5;
+const RAND_MASK = false;
+const REVERSE_ORDER = false;
 
 // Debug Variables
+const SKIP_CHINREST = false;
+const SKIP_CONSENT = false;
 const SKIP_PROLIFIC_ID = false;
 const SKIP_INSTRUCTIONS = false;
 
@@ -77,12 +78,13 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     choices: "NO_KEYS",
     trial_duration: STIM_IMAGE_DUR,
   };
-  const mask_img = sampleRandomMask(jsPsych);
+
+  const mask_img = RAND_MASK ? sampleRandomMask(jsPsych) : "grey_mask.png";
   const mask = {
     type: HtmlKeyboardResponsePlugin,
     stimulus: `<div class="centered"> ${genImgHtml(mask_img, false)} </div>`,
     choices: "NO_KEYS",
-    trial_duration: STIM_MASK_DUR,
+    trial_duration: MASK_IMAGE_DUR,
 
   };
   const img_2 = {
@@ -95,27 +97,17 @@ var genTrial = function (jsPsych, img_a, img_b, flipx) {
     type: HtmlKeyboardResponsePlugin,
     stimulus: '',
     choices: ['f', 'j'],
-    prompt: `<p>Press 'f' if the images are the <b>DIFFERENT</b>.</p> <p>Press 'j' if the images are the <b>SAME</b>.</p>`,
-    post_trial_gap: 1000, // 1000ms gap
-
-  };
-
-  const mask_2_img = sampleRandomMask(jsPsych);
-  const mask_2 = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `<div class="centered"> ${genImgHtml(mask_2_img, false)} </div>`,
-    choices: "NO_KEYS",
-    trial_duration: STIM_MASK_DUR,
+    prompt: `<p>Press 'f' if the paths remains the <b>SAME</b>.</p> <p>Press 'j' if the path has <b>CHANGED</b>.</p>`,
+    post_trial_gap: BTWN_TRIAL_DUR,
 
   };
 
   const tl = {
-    timeline: [img_1, mask, img_2, mask_2, response],
+    timeline: [img_1, mask, img_2, response],
     data: {
       a: img_a.slice(0, -4),
       b: img_b.slice(0, -4),
       mask: mask_img,
-      mask_2: mask_2_img
     }
   };
   return (tl);
@@ -134,25 +126,72 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         // in jatos environment
         jatos.endStudyAndRedirect(PROLIFIC_URL, jsPsych.data.get().json());
       } else {
+        jsPsych.data.displayData("json");
         return jsPsych;
       };
-    }
+    },
+    on_interaction_data_update: function (data) {
+      if (data.event == "fullscreenexit" && should_be_in_fullscreen) {
+        console.log("exited fullscreen");
+        // hide the contents of the current trial
+        jsPsych.getDisplayElement().style.visibility = "hidden";
+        // add a div that contains a message and button to re-enter fullscreen
+        jsPsych
+          .getDisplayElement()
+          .insertAdjacentHTML(
+            "beforebegin",
+            '<div id="message-div" style="margin: auto; width: 100%; text-align: center;">' +
+              "<p>Please remain in fullscreen mode during the task.</p>" +
+              "<p>When you click the button below, you will enter fullscreen mode.</p>" +
+              '<button id="jspsych-fullscreen-btn" class="jspsych-btn">Continue</button></div>',
+          );
+        // call the request fullscreen function when the button is clicked
+        document
+          .querySelector("#jspsych-fullscreen-btn")
+          .addEventListener("click", function () {
+            var element = document.documentElement;
+            if (element.requestFullscreen) {
+              element.requestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+              element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullscreen) {
+              element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+              element.msRequestFullscreen();
+            }
+          });
+      }
+      if (data.event == "fullscreenenter") {
+        console.log("entered fullscreen");
+        // when entering fullscreen, check to see if the participant is re-entering fullscreen,
+        // i.e. the 'please enter fullscreen' message is on the page
+        var msg_div = document.querySelector("#message-div");
+        if (msg_div !== null) {
+          // remove the message
+          msg_div.remove();
+          // show the contents of the current trial again
+          jsPsych.getDisplayElement().style.visibility = "visible";
+        }
+      }
+    },
   });
 
   const timeline = [];
 
-  timeline.push({
-    type: ExternalHtmlPlugin,
-    url: assetPaths.misc[1],
-    cont_btn: 'start',
-    check_fn: function() {
-      if (document.getElementById('consent_checkbox').checked) {
-        return true;
-      } else {
-        alert('You must tick the checkbox to continue with the study.')
-      }
-    }
-  });
+  if (!SKIP_CONSENT) {
+    timeline.push({
+      type: ExternalHtmlPlugin,
+      url: assetPaths.misc[1],
+      cont_btn: "start",
+      check_fn: function () {
+        if (document.getElementById("consent_checkbox").checked) {
+          return true;
+        } else {
+          alert("You must tick the checkbox to continue with the study.");
+        }
+      },
+    });
+  }
 
   if (!SKIP_PROLIFIC_ID) {
     timeline.push({
@@ -172,9 +211,13 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     images: assetPaths.images,
   });
 
+  var should_be_in_fullscreen = false;
   timeline.push({
     type: FullscreenPlugin,
     fullscreen_mode: true,
+    on_start: () => {
+      should_be_in_fullscreen = true; // once this trial starts, the participant should be in fullscreen
+    },
   });
 
   timeline.push({
@@ -194,33 +237,34 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         type: "welcome",
     }
   });
-
-  timeline.push({
-    type: VirtualChinrestPlugin,
-    blindspot_reps: 3,
-    resize_units: "deg",
-    pixels_per_unit: PIXELS_PER_UNIT
-  });
+    
+  if (!SKIP_CHINREST) {
+    timeline.push({
+      type: VirtualChinrestPlugin,
+      blindspot_reps: 3,
+      resize_units: "deg",
+      pixels_per_unit: PIXELS_PER_UNIT
+    });
+  }
 
 
   const instructions = {
       type: InstructionsPlugin,
       pages: [
-        `The study is designed to be <i>challenging</i>. <br> Sometimes, you'll be certain about what you saw.<br>`+
-          `Other times, you won't be -- and this is okay! Just give your best guess each time. <br><br>` +
-          `Click <b>Next</b> to continue.`,
-        `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over.<br> `+
-          `But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` +
-          `There are <strong>${N_TRIALS} trials</strong> in this study. <br>`+
-          `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>`
-          + `Click <b>Next</b> to continue.`,
-        `In this study, two images (like the one below) will briefly appear one after the other.<br>`+
-          `You will be asked to determine whether the two images are the same. <br>` +
-        `After the second image dissapears, <br> press <b>"j"</b> if the images are the <b>SAME</b> <br> otherwise press <b>"f"</b> if the images are <b>DIFFERENT</b> <br> <br>` +
-          genImgHtml("1_1.png", false) +
-          `<br> Click <b>Next</b> to continue.`,
-        `<strong>The next screen will be a demonstration trial.</strong> <br>` +
-        `Please take the time to familiarize yourself with the interface during the demonstration. <br><br>` +
+      `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over.<br> ` +
+        `But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` +
+        `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` +
+        `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` +
+        `Click <b>Next</b> to continue.`,
+      `In this study, two images of indoor rooms (like the one below) will briefly appear one after the other. These rooms <b>will change</b> in one spot.<br>` +
+        `Your task is to determine whether the change impacts the path to the door by pressing the <b>J</b> key for <u>yes</u> and <b>F</b> key for <u>no</u>. <br> <br>` +
+        genImgHtml("example_a.png", false) +
+        `<br> Click <b>Next</b> to continue.`,
+      `Remember, your task is to simply determine whether the path changes (the images will always change somewhere). <br>` +
+        `Here is a general illustration of where the path to the door might be <br><br>` +
+        genImgHtml("example_a_path.png", false) +
+        `<br> Click <b>Next</b> to continue.`,
+      `<strong>The next screen will be a demonstration trial.</strong> <br>` +
         `Click <b>Next</b> when you are ready to start the demonstration.`,
       ],
       show_clickable_nav: true,
@@ -231,14 +275,14 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
 
   //        example
-  const exampleTrial = genTrial(jsPsych, "example.png", "example.png", false);
+  const exampleTrial = genTrial(jsPsych, "example_a.png", "example_b.png", false);
 
   // comprehension check
   const comp_check = {
       type: SurveyMultiChoicePlugin,
       preamble: "<h2>Comprehension Check</h2>",
       questions: [{
-              prompt: "Which key should you respond with if the two images are the same?",
+              prompt: "Which key should you respond with if the path remains the same?",
               name: 'check1',
               options: ['f','j','s'],
               required: true
@@ -256,7 +300,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
           var q1 = data.response.check1;
           var q2 = data.response.check2;
           // set to true if both comp checks are passed
-          data.correct = (q1 == 'j' && q2 == 'false');
+          data.correct = (q1 == 'f' && q2 == 'true');
       },
       data: {
           // add any additional data that needs to be recorded here
@@ -306,7 +350,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   timeline.push({
     type: SurveyTextPlugin,
-    preamble: `<h2><b>Thank you for helping us with our study! :) </b></h2><br><br> ` +
+    preamble: `<h2><b>Thank you for helping us with our study! </b></h2> It is ok if you felt that the task was difficult, it was designed to be hard.<br><br> ` +
           `Please fill out the survey below and click <b>Done</b> to complete the experiment. <br> `,
     questions: [
       {prompt: 'Did you find yourself using any strategies while performing judgment? ',
