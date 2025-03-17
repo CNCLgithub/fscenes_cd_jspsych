@@ -16,6 +16,7 @@
     "@jspsych/plugin-preload": "^1.1.2",
     "@jspsych/plugin-resize": "^1.0.2",
     "@jspsych/plugin-same-different-html": "^1.1.2",
+    "@jspsych/plugin-sketchpad": "^2.1.0",
     "@jspsych/plugin-survey-multi-choice": "^1.1.2",
     "@jspsych/plugin-survey-text": "^1.1.2",
     "@jspsych/plugin-virtual-chinrest": "^2.0.2",
