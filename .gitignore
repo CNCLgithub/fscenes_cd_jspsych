@@ -15,3 +15,6 @@ yarn-error.log*
 .jspsych-builder/
 assets/
 packaged/
+records/
+assets_bkup/
+data/

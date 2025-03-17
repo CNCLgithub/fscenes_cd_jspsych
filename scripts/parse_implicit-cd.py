@@ -17,12 +17,23 @@ df_schema = {
     'uid': pl.UInt16
 }
 
+schema = {
+         'scene' : pl.UInt16,
+         'door' : pl.UInt8,
+         'correct' : pl.Boolean,
+         'rt' : pl.Float64,
+         'order' : pl.Int64,
+         'uid' : pl.Int64,
+         'pid' : pl.String
+    }
+
+
 def parse_trial_data(df, data : dict):
     scene, door = data['a'].split('_')[:2]
     df['scene'].append(int(scene))
     df['door'].append(int(door))
     same = data['a'] == data['b']
-    correct = data['response'] == 'j' if same else data['response'] == 'f'
+    correct = data['response'] == 'f' if same else data['response'] == 'j'
     df['same'].append(same)
     df['correct'].append(correct)
     df['rt'].append(data['rt'])
@@ -55,26 +66,26 @@ def main():
         description = 'Parses JATOS data',
         formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument('dataset', type = str, nargs="+",
+    parser.add_argument('dataset', type = str,
                         help = "Which scene dataset to use")
     args = parser.parse_args()
     raw = []
-    for dfile in args.dataset:
-        with open(dfile, "r") as f:
-            for subj in f:
+    with open(args.dataset, "r") as f:
+        for (i, subj) in enumerate(f):
+            try:
                 raw.append(json.loads(subj))
+            except:
+                print(f'Could not interpret entry {i}')
 
     result = pl.DataFrame(schema=df_schema)
     for idx, subj in enumerate(raw):
         df = parse_subj_data(subj, idx)
         result.vstack(df, in_place=True)
 
-    print(result)
-    print(result.group_by("door").agg(pl.mean("correct")))
-    print(result.group_by("door", "same").agg(pl.mean("correct")).sort("door", "same"))
 
-    dpath_name = args.dataset[0]
-    result_out = dpath_name.replace(".txt", ".csv")
+    print(result)
+
+    result_out = args.dataset.replace(".txt", ".csv")
     result.write_csv(result_out)
 
 if __name__ == '__main__':
