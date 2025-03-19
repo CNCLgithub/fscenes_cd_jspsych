@@ -533,6 +533,11 @@ class SketchpadPlugin implements JsPsychPlugin<Info> {
     if (this.params.canvas_shape == "circle") {
       this.ctx.fillRect(0, 0, this.params.canvas_diameter, this.params.canvas_diameter);
     }
+
+    // green anchor
+    this.ctx.fillStyle = "green"
+    this.ctx.fillRect(this.params.canvas_width * 0.4, this.params.canvas_height * 0.95,
+                      this.params.canvas_width * 0.2, this.params.canvas_height * 0.05)
   }
 
   private add_background_image() {

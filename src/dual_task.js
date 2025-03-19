@@ -26,15 +26,14 @@ import { initJsPsych } from "jspsych";
 // Prolific variables
 const PROLIFIC_URL = 'https://app.prolific.com/submissions/complete?cc=782B6DAB';
 
-// trial list
-import trial_list from '../assets/condlist.json';
-
 // Define global experiment variables
-var N_TRIALS = trial_list.length;
+const N_SCENES = 10;
+const N_CD_TRIALS = N_SCENES * 4; // 2 doors * 2 conditions (change  + no change)
+const N_DRAW_TRIALS = N_SCENES * 2; // 2 doors
 const EXP_DURATION = 10; // in minutes
 const STIM_IMAGE_W = 873; // pixels
 const STIM_IMAGE_H = 491;
-const STIM_DEG = 15; // visual degrees of image width
+const STIM_DEG = 14; // visual degrees of image width
 const PIXELS_PER_UNIT = STIM_IMAGE_W / STIM_DEG;
 const STIM_IMAGE_DUR = 850; // ms
 const MASK_IMAGE_DUR = 1500; // ms
@@ -45,10 +44,12 @@ const RAND_MASK = false;
 const REVERSE_ORDER = false;
 
 // Debug Variables
-const SKIP_CHINREST = true;
-const SKIP_CONSENT = true;
-const SKIP_PROLIFIC_ID = true;
-const SKIP_INSTRUCTIONS = true;
+const SKIP_CHINREST = false;
+const SKIP_CONSENT = false;
+const SKIP_PROLIFIC_ID = false;
+const SKIP_INSTRUCTIONS = false;
+
+let IMG_SCALE = 1.0;
 
 var genImgHtml = function (img, flipx) {
     const sx = flipx ? -1 : 1;
@@ -56,7 +57,7 @@ var genImgHtml = function (img, flipx) {
     const path = `assets/images/${img}`;
     // from https://stackoverflow.com/a/17698171
     const trans = `transform: scaleY(${sy}) scaleX(${sx});`
-    const img_dims = `width:${STIM_IMAGE_W}px;height:${STIM_IMAGE_H}px`
+    const img_dims = `width:${STIM_IMAGE_W*IMG_SCALE}px;height:${STIM_IMAGE_H*IMG_SCALE}px`
     const ihtml = `<image src=${path} style="${img_dims};${trans}"\>`;
     return ihtml;
 };
@@ -136,13 +137,11 @@ var drawTrial = function (jsPsych, img_src, flipx) {
         type: SketchpadPlugin,
         prompt: `<p>Please draw the shortest path to the door.</p>`,
         prompt_location: 'belowcanvas',
-        canvas_width: STIM_IMAGE_W,
+        canvas_width: STIM_IMAGE_W*IMG_SCALE,
         canvas_height: STIM_IMAGE_H,
         canvas_border_width: 2,
         stroke_width: 4,
         save_strokes: false,
-        // show_finished_button: false,
-        // post_trial_gap: BTWN_TRIAL_DUR,
     };
 
     const tl = {
@@ -223,7 +222,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     if (!SKIP_CONSENT) {
         timeline.push({
             type: ExternalHtmlPlugin,
-            url: assetPaths.misc[1],
+            url: assetPaths.misc[0],
             cont_btn: "start",
             check_fn: function () {
                 if (document.getElementById("consent_checkbox").checked) {
@@ -285,24 +284,29 @@ export async function run({ assetPaths, input = {}, environment, title, version 
             type: VirtualChinrestPlugin,
             blindspot_reps: 3,
             resize_units: "deg",
-            pixels_per_unit: PIXELS_PER_UNIT
+            pixels_per_unit: PIXELS_PER_UNIT,
+            on_finish : function(data) {
+                let result = jsPsych.data.get().last(1).values()[0];
+                IMG_SCALE = result.scale_factor;
+                // scaling the parent div messes with drawing task
+                document.getElementById("jspsych-content").style.transform = "";
+                console.log(IMG_SCALE);
+            }
         });
     }
 
 
-    const instructions = {
+    const instruct_cd = {
         type: InstructionsPlugin,
         pages: [
             `We know it is also difficult to stay focused for so long, especially when you are doing the same thing over and over.<br> ` +
                 `But remember, the experiment will be all over in less than ${EXP_DURATION} minutes. <br>` +
-                `There are <strong>${N_TRIALS} trials</strong> in this study. <br>` +
                 `Please do your best to remain focused! Your responses will only be useful to us if you remain focused. <br><br>` +
                 `Click <b>Next</b> to continue.`,
-            `In this study, two images (like the one below) will briefly appear one after the other. <br>` +
-                `Your task is to determine whether the two images are DIFFERENT by pressing the <b>J</b> key for <u>yes</u> and <b>F</b> key for <u>no</u>. <br> <br>` +
+            `In this study, you will view an image (like the one below).<br>After a short period of time, the image will dissapear and you will then be asked one of two questions. <br>` +
                 genImgHtml("example_a.png", false) +
                 `<br> Click <b>Next</b> to continue.`,
-            `Remember, your task is to simply determine whether the image changes. <br>` +
+            `Sometimes, you will see a second image.<br>In this case, you will be asked to determine whether the two images are DIFFERENT by pressing the <b>J</b> key for <u>yes</u> and <b>F</b> key for <u>no</u>. <br> <br>` +
                 `<strong>The next screen will be a demonstration trial.</strong> <br>` +
                 `Click <b>Next</b> when you are ready to start the demonstration.`,
         ],
@@ -312,22 +316,35 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         allow_backward: false,
     };
 
+    const example_cd = cdTrial(jsPsych, "example_a.png", "example_b.png", false);
+    const example_draw = drawTrial(jsPsych, "example_a.png", true);
 
-    //        example
-    const exampleTrial = cdTrial(jsPsych, "example_a.png", "example_b.png", false);
+    const instruct_draw = {
+        type: InstructionsPlugin,
+        pages: [
+            `Other times, you will see a blank canvas.<br>In this case you will be asked to draw (using your mouse) the shortest path to the door,<br> taking care to avoid the blue obstacles. <br> <br>` +
+                `<strong>The next screen will be a demonstration trial.</strong> <br>` +
+                `Click <b>Next</b> when you are ready to start the demonstration.`,
+        ],
+        show_clickable_nav: true,
+        show_page_number: true,
+        page_label: "<b>Instructions</b>",
+        allow_backward: false,
+    };
 
     // comprehension check
     const comp_check = {
         type: SurveyMultiChoicePlugin,
         preamble: "<h2>Comprehension Check</h2>",
-        questions: [{
-            prompt: "Which key should you respond with if the image remains the same?",
-            name: 'check1',
-            options: ['f','j','s'],
-            required: true
-        },
+        questions: [
             {
-                prompt: "True or False: The two images will always be different",
+                prompt: "Which key should you respond with if the image remains the same?",
+                name: 'check1',
+                options: ['f','j','s'],
+                required: true
+            },
+            {
+                prompt: "True or False: You can walk through the blue obstacles",
                 name: 'check2',
                 options: ['true',
                     'false'],
@@ -368,7 +385,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
     // `comp_loop`: if answers are incorrect, `comp_check` will be repeated until answers are correct responses
     const comp_loop = {
-        timeline: [instructions, exampleTrial, comp_check, comp_feedback],
+        timeline: [instruct_cd, example_cd, instruct_draw, example_draw, comp_check, comp_feedback],
         loop_function: function (data) {
             // return false if comprehension passes to break loop
             let values = data.values();
@@ -382,11 +399,21 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     };
 
     // add exp trials with random shuffle, unique per session
-    for (const trial of jsPsych.randomization.shuffle(trial_list)) {
-        const [img_a, img_b, flipX] = trial
-        // TODO: update condlist to split these two kinds of trials
-        // timeline.push(cdTrial(jsPsych, img_a, img_b, flipX));
-        timeline.push(drawTrial(jsPsych, img_a, flipX));
+    let exp_trials = [];
+    let count = 0
+    for (const scene of Array.from({length: N_SCENES}, (v, k) => k+1)) {
+        for (const door of [1, 2]) {
+            const img_a = `${scene}_${door}.png`;
+            const img_b = `${scene}_${door}_blocked.png`;
+            const flipX = count % 2 == 0;
+            exp_trials.push(cdTrial(jsPsych, img_a, img_a, flipX));
+            exp_trials.push(cdTrial(jsPsych, img_a, img_b, flipX));
+            exp_trials.push(drawTrial(jsPsych, img_a, flipX));
+            count += 1;
+        };
+    };
+    for (const trial of jsPsych.randomization.shuffle(exp_trials)) {
+        timeline.push(trial);
     };
 
     timeline.push({
