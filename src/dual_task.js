@@ -1,7 +1,7 @@
 /**
  * @title Dual Task Draw test
  * @description dataset=window-0.1/2025-02-05_vifdDO, gmask, 850ms
- * @version 0.1
+ * @version 0.2
  * @assets assets/
  */
 
@@ -402,10 +402,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     let exp_trials = [];
     let count = 0
     for (const scene of Array.from({length: N_SCENES}, (v, k) => k+1)) {
+        const flipX = scene % 2 == 0;
         for (const door of [1, 2]) {
             const img_a = `${scene}_${door}.png`;
             const img_b = `${scene}_${door}_blocked.png`;
-            const flipX = count % 2 == 0;
             exp_trials.push(cdTrial(jsPsych, img_a, img_a, flipX));
             exp_trials.push(cdTrial(jsPsych, img_a, img_b, flipX));
             exp_trials.push(drawTrial(jsPsych, img_a, flipX));
