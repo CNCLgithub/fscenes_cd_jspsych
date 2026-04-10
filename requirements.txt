@@ -1,2 +1,6 @@
+h5py
 numpy
+altair
+marimo
 polars
+pillow

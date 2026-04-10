@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
+import io
 import os
 import json
 import glob
+import h5py
+import base64
 import argparse
 import numpy as np
 import polars as pl
-
-import io
-import base64
 from PIL import Image
 
 
@@ -22,6 +22,41 @@ cd_schema = {
     'uid' : pl.Int64,
     'pid' : pl.String
 }
+
+DRAWING_DATABASE='./data/hand_drawings_by_scene.h5'
+DRAWING_DIM = (491, 873) # As of pilot-0.2, March 2025
+
+def add_drawing(f, uid: int, scene_id: int, door: bool, img: np.ndarray):
+    """ img shape should be (H,W) or (H,W,1) or (H,W,3) """
+    img = np.asarray(img)
+    if img.ndim == 2:
+        img = img[..., None]  # → (H,W,1)
+
+    if "drawings" not in f:
+        maxshape = (None, *img.shape)
+        dset = f.create_dataset("drawings", shape=(0, *img.shape),
+                               maxshape=maxshape,
+                               dtype=np.uint8,
+                               compression="gzip",
+                               chunks=(1, *img.shape))
+        f.create_dataset("uid", shape=(0,), maxshape=(None,), dtype=np.uint32)
+        f["uid"].attrs["description"] = "Unique subject identifier"
+        f.create_dataset("scene_id", shape=(0,), maxshape=(None,), dtype=np.uint32)
+        f.create_dataset("door", shape=(0,), maxshape=(None,), dtype=np.uint8)
+        f["door"].attrs["description"] = \
+            "Whether the door is to the left (1) or right (2)"
+    else:
+        dset = f["drawings"]
+
+    # Resize all datasets
+    n = len(f["uid"])
+    for name in ["drawings", "uid", "scene_id", "door"]:
+        f[name].resize(n+1, axis=0)
+
+    f["drawings"][n] = img
+    f["uid"][n]      = uid
+    f["scene_id"][n] = scene_id
+    f["door"][n]     = door
 
 def parse_cd_trial(df, data : dict):
     scene, door = data['a'].split('_')[:2]
@@ -41,23 +76,15 @@ def decode_img(msg):
     msg = base64.b64decode(msg)
     buf = io.BytesIO(msg)
     img = Image.open(buf).convert('L')
-    img.save('test.png')
     img = np.asarray(img)
     return img
 
-def parse_draw_trial(data: dict):
+def parse_draw_trial(f, uid: int, data: dict):
     scene, door = data['img'].split('_')[:2]
-    return decode_img(data['png'])
-    # df['scene'].append(int(scene))
-    # df['door'].append(int(door))
-    # df['same'].append(same)
-    # df['correct'].append(correct)
-    # df['rt'].append(data['rt'])
-    # df['order'].append(data['trial_index'])
+    drawing = decode_img(data['png'])
+    add_drawing(f, uid, scene, door, drawing)
 
-
-
-def parse_subj_data(timeline: list, unique_id: int):
+def parse_subj_data(drawing_file, timeline: list, unique_id: int):
 
     pid = None
     # get prolific id
@@ -78,15 +105,12 @@ def parse_subj_data(timeline: list, unique_id: int):
 
     for step in timeline:
         trial_type = step.get('trial_type', '')
-        print(trial_type)
         has_response = step.get('response', False)
         # Change detection trial
         if trial_type == 'html-keyboard-response' and has_response:
             parse_cd_trial(data, step)
         elif trial_type == 'sketchpad' and has_response:
-            print('Found draw trial')
-            img = parse_draw_trial(step)
-            print(img.shape)
+            parse_draw_trial(drawing_file, unique_id, step)
 
     data['uid'] = unique_id
     data['pid'] = pid
@@ -110,10 +134,12 @@ def main():
             except:
                 print(f'Could not interpret entry {i}')
 
+    drawings_out = args.dataset.replace(".txt", ".h5")
     result = pl.DataFrame(schema=cd_schema)
-    for idx, subj in enumerate(raw):
-        df = parse_subj_data(subj, idx)
-        result.vstack(df, in_place=True)
+    with h5py.File(drawings_out, "w") as draw_file:
+        for idx, subj in enumerate(raw):
+            df = parse_subj_data(draw_file, subj, idx)
+            result.vstack(df, in_place=True)
 
     pl.Config.set_tbl_rows(100)
     subjects = result.group_by('pid').agg(pl.len())
